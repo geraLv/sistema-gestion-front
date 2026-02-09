@@ -39,7 +39,8 @@ export default function ImpresionesPage() {
   const loadLocalidades = async () => {
     try {
       const data = await localidadesApi.getAll();
-      const mapped = (data as any[]).map((l) => ({
+      const list = Array.isArray(data) ? data : (data as any)?.data || [];
+      const mapped = list.map((l: any) => ({
         idlocalidad: l.idlocalidad,
         nombre: l.nombre || l.localidad || "Sin nombre",
       }));
