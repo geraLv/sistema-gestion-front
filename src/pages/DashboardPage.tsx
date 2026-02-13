@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Layout from "../components/Layout";
+import { EmptyState, ErrorState, LoadingState } from "../components/Status";
 import { solicitudesApi, clientesApi, cuotasApi } from "../api/endpoints";
 
 interface DashboardData {
@@ -92,11 +93,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Estadísticas rápidas (mantener) */}
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
-            {error}
-          </div>
-        )}
+        {error && <ErrorState message={error} />}
 
         {!error && (
           <>
@@ -141,7 +138,7 @@ export default function DashboardPage() {
             <div className="panel pad max-h-80">
               <h2 className="text-xl font-bold mb-4">Últimas Solicitudes</h2>
               {loading ? (
-                <p className="text-center py-8">Cargando...</p>
+                <LoadingState />
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full">
@@ -191,9 +188,7 @@ export default function DashboardPage() {
                     </tbody>
                   </table>
                   {data.solicitudesRecientes.length === 0 && (
-                    <p className="text-center py-8 text-gray-500">
-                      No hay solicitudes
-                    </p>
+                    <EmptyState message="No hay solicitudes" />
                   )}
                 </div>
               )}

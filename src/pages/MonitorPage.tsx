@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Layout from "../components/Layout";
 import { reportesApi, solicitudesApi } from "../api/endpoints";
+import { ErrorState, LoadingState } from "../components/Status";
 import "./MonitorPage.css";
 
 type MonitorData = {
@@ -119,7 +120,8 @@ export default function MonitorPage() {
               {loading ? "Buscando..." : "Buscar"}
             </button>
           </div>
-          {error && <p className="text-red-600 mt-3">{error}</p>}
+          {loading && <LoadingState label="Buscando..." />}
+          {error && <ErrorState message={error} />}
         </div>
 
         <div className="monitor-card">

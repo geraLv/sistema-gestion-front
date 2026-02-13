@@ -1,12 +1,12 @@
 import { useState } from "react";
+
 import { useNavigate } from "react-router-dom";
 import useAuthStore from "../stores/authStore";
 import { authApi } from "../api/endpoints";
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { setToken, setUsuario, setIsLoading, setError, isLoading } =
-    useAuthStore();
+  const { setUsuario, setIsLoading, setError, isLoading } = useAuthStore();
   const [usuario, setUsuarioInput] = useState("");
   const [password, setPassword] = useState("");
   const [error, setErrorLocal] = useState("");
@@ -27,9 +27,8 @@ export default function LoginPage() {
     try {
       const response = await authApi.login(usuario, password);
       console.log(response);
-      if (response.data.success && response.data?.token) {
+      if (response.data.success) {
         const userData: any = response.data.userData;
-        setToken(response.data.token);
         setUsuario(
           userData
             ? {

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import Layout from "../components/Layout";
+import { ErrorState, LoadingState } from "../components/Status";
 import { localidadesApi, reportesApi } from "../api/endpoints";
 import "./ImpresionesPage.css";
 
@@ -181,11 +182,7 @@ export default function ImpresionesPage() {
           </p>
         </div>
 
-        {error && (
-          <div className="legacy-panel" style={{ borderColor: "#fca5a5" }}>
-            <p style={{ color: "#b91c1c" }}>{error}</p>
-          </div>
-        )}
+        {error && <ErrorState message={error} />}
 
         <div className="legacy-grid">
           <section className="legacy-panel">
@@ -210,6 +207,7 @@ export default function ImpresionesPage() {
                 Imprimir recibo
               </button>
             </div>
+            {loading && <LoadingState label="Generando..." />}
           </section>
 
           <section className="legacy-panel">
@@ -258,6 +256,7 @@ export default function ImpresionesPage() {
                 Recibos mes posterior
               </button>
             </div>
+            {loading && <LoadingState label="Generando..." />}
           </section>
 
           <section className="legacy-panel">
@@ -296,6 +295,7 @@ export default function ImpresionesPage() {
                 Imprimir por localidad
               </button>
             </div>
+            {loading && <LoadingState label="Generando..." />}
           </section>
 
           <section className="legacy-panel">
@@ -342,6 +342,7 @@ export default function ImpresionesPage() {
                 Descargar Excel
               </button>
             </div>
+            {loading && <LoadingState label="Generando..." />}
           </section>
         </div>
 

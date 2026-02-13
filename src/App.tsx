@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect } from "react";
 import ProtectedRoute from "./components/ProtectedRoute";
+import RoleRoute from "./components/RoleRoute";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
 import ClientesPage from "./pages/ClientesPage";
@@ -14,11 +15,12 @@ import { authApi } from "./api/endpoints";
 import useAuthStore from "./stores/authStore";
 
 function App() {
-  const { token, usuario, setUsuario, logout, setIsLoading } = useAuthStore();
+  const { usuario, setUsuario, logout, setIsLoading, setHasHydrated } =
+    useAuthStore();
 
   useEffect(() => {
     const hydrateUser = async () => {
-      if (!token || usuario) return;
+      if (usuario) return;
       try {
         setIsLoading(true);
         const response: any = await authApi.getCurrentUser();
@@ -31,11 +33,12 @@ function App() {
         logout();
       } finally {
         setIsLoading(false);
+        setHasHydrated(true);
       }
     };
 
     hydrateUser();
-  }, [token, usuario, setUsuario, logout, setIsLoading]);
+  }, [usuario, setUsuario, logout, setIsLoading, setHasHydrated]);
 
   return (
     <BrowserRouter>
@@ -102,7 +105,9 @@ function App() {
           path="/admin"
           element={
             <ProtectedRoute>
-              <AdminPage />
+              <RoleRoute role="admin">
+                <AdminPage />
+              </RoleRoute>
             </ProtectedRoute>
           }
         />

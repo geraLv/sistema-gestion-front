@@ -14,6 +14,7 @@ export interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
+  hasHydrated?: boolean;
 }
 
 export interface Cliente {

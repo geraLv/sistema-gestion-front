@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import useAuthStore from "../../stores/authStore";
+import { authApi } from "../../api/endpoints";
 
 export default function Header() {
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ export default function Header() {
   }, [configOpen]);
 
   const handleLogout = () => {
+    authApi.logout().catch(() => undefined);
     logout();
     navigate("/login");
   };

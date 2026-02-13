@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import Layout from "../components/Layout";
+import { LoadingState } from "../components/Status";
 import { adminApi, auditApi, vendedoresAdminApi } from "../api/endpoints";
 
 type Tab = "users" | "audit" | "vendedores";
@@ -156,7 +157,7 @@ export default function AdminPage() {
             </div>
 
             {loadingUsers ? (
-              <p>Cargando...</p>
+              <LoadingState />
             ) : (
               <div className="table-shell">
                 <table className="w-full">
@@ -279,7 +280,7 @@ export default function AdminPage() {
             </div>
 
             {loadingLogs ? (
-              <p>Cargando...</p>
+              <LoadingState />
             ) : (
               <div className="table-shell">
                 <table className="w-full">
@@ -334,7 +335,7 @@ export default function AdminPage() {
             </div>
 
             {loadingVendedores ? (
-              <p>Cargando...</p>
+              <LoadingState />
             ) : (
               <div className="table-shell">
                 <table className="w-full">

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Layout from "../components/Layout";
-import { cuotasApi } from "../api/endpoints";
+import { EmptyState, ErrorState, LoadingState } from "../components/Status";
+import { cuotasApi, reportesApi, solicitudesApi } from "../api/endpoints";
 
 interface CuotaView {
   id: number;
@@ -16,11 +17,26 @@ export default function CuotasPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("");
+  const [searchTerm, setSearchTerm] = useState("");
   const [showView, setShowView] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [viewCuota, setViewCuota] = useState<any | null>(null);
+  const [viewSolicitud, setViewSolicitud] = useState<any | null>(null);
+  const [viewSolicitudLoading, setViewSolicitudLoading] = useState(false);
+  const [viewSolicitudError, setViewSolicitudError] = useState<string | null>(
+    null,
+  );
+  const [viewComprobantes, setViewComprobantes] = useState<any[]>([]);
+  const [viewReciboLoading, setViewReciboLoading] = useState(false);
+  const [viewReciboError, setViewReciboError] = useState<string | null>(null);
   const [editCuota, setEditCuota] = useState<any | null>(null);
   const [editError, setEditError] = useState<string | null>(null);
+  const [showPay, setShowPay] = useState(false);
+  const [payCuota, setPayCuota] = useState<any | null>(null);
+  const [payError, setPayError] = useState<string | null>(null);
+  const [payFile, setPayFile] = useState<File | null>(null);
+  const [payLoading, setPayLoading] = useState(false);
+  const [comprobantes, setComprobantes] = useState<any[]>([]);
   const [selectedCuotas, setSelectedCuotas] = useState<number[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(15);
@@ -36,7 +52,7 @@ export default function CuotasPage() {
       const response = await cuotasApi.getAll();
       const mapped = (response || []).map((c: any) => ({
         id: c.idcuota,
-        nroSolicitud: c.relasolicitud || "",
+        nroSolicitud: c.relasolicitud,
         nroCuota: c.nrocuota,
         importe: c.importe,
         vencimiento: c.vencimiento,
@@ -55,7 +71,14 @@ export default function CuotasPage() {
 
   const filteredCuotas = cuotas.filter((cuota) => {
     const matchesStatus = !statusFilter || cuota.estado === statusFilter;
-    return matchesStatus;
+    const search = searchTerm.trim().toLowerCase();
+    if (!search) return matchesStatus;
+    const nroSolicitud = String(cuota.nroSolicitud || "").toLowerCase();
+    const nroCuota = String(cuota.nroCuota || "").toLowerCase();
+    return (
+      matchesStatus &&
+      (nroSolicitud.includes(search) || nroCuota.includes(search))
+    );
   });
 
   const totalPages = Math.ceil(filteredCuotas.length / rowsPerPage);
@@ -116,9 +139,70 @@ export default function CuotasPage() {
     try {
       const data: any = await cuotasApi.getById(id);
       setViewCuota(data);
+      setViewSolicitud(null);
+      setViewSolicitudError(null);
+      setViewSolicitudLoading(true);
+      if (data?.relasolicitud) {
+        const solicitudId = Number(data.relasolicitud);
+        try {
+          const solicitud = Number.isFinite(solicitudId)
+            ? await solicitudesApi.getById(solicitudId)
+            : await solicitudesApi.getByNro(String(data.relasolicitud));
+          setViewSolicitud(solicitud);
+        } catch (err) {
+          setViewSolicitudError("No se pudo cargar la solicitud");
+        }
+      }
+      const list = await cuotasApi.getComprobantes(id);
+      setViewComprobantes(list || []);
       setShowView(true);
     } catch (err) {
       setError("No se pudo cargar la cuota");
+    } finally {
+      setViewSolicitudLoading(false);
+    }
+  };
+
+  const formatFechaComprobante = (value?: string) => {
+    if (!value) return "Sin fecha";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "Sin fecha";
+    return date.toLocaleString("es-AR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const openBlob = (blob: Blob, filename: string) => {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
+  const handleDescargarRecibo = async () => {
+    if (!viewCuota) return;
+    const id = Number(viewCuota.idcuota ?? viewCuota.id);
+    if (!Number.isFinite(id) || id <= 0) {
+      setViewReciboError("ID de cuota inválido.");
+      return;
+    }
+    setViewReciboError(null);
+    setViewReciboLoading(true);
+    try {
+      const blob = await reportesApi.reciboCuota(id);
+      openBlob(blob, `recibo-cuota-${id}.pdf`);
+    } catch (err) {
+      setViewReciboError("No se pudo generar el recibo.");
+    } finally {
+      setViewReciboLoading(false);
     }
   };
 
@@ -162,12 +246,46 @@ export default function CuotasPage() {
 
   const handlePagar = async (id: number) => {
     try {
-      await cuotasApi.pagar(id);
+      setPayError(null);
+      const data: any = await cuotasApi.getById(id);
+      setPayCuota({
+        id: data.idcuota,
+        nroSolicitud: data.relasolicitud,
+        nroCuota: data.nrocuota,
+        importe: data.importe,
+        vencimiento: data.vencimiento,
+        estado: data.estado,
+      });
+      const list = await cuotasApi.getComprobantes(id);
+      setComprobantes(list || []);
+      setShowPay(true);
+    } catch (err) {
+      const errorMsg =
+        err instanceof Error ? err.message : "Error al cargar cuota";
+      setPayError(errorMsg);
+    }
+  };
+
+  const handleConfirmarPago = async () => {
+    if (!payCuota) return;
+    setPayLoading(true);
+    setPayError(null);
+    try {
+      await cuotasApi.pagar(payCuota.id);
+      if (payFile) {
+        await cuotasApi.uploadComprobante(payCuota.id, payFile);
+      }
+      setShowPay(false);
+      setPayCuota(null);
+      setPayFile(null);
+      setComprobantes([]);
       loadCuotas();
     } catch (err) {
       const errorMsg =
         err instanceof Error ? err.message : "Error al pagar cuota";
-      alert(errorMsg);
+      setPayError(errorMsg);
+    } finally {
+      setPayLoading(false);
     }
   };
 
@@ -187,23 +305,28 @@ export default function CuotasPage() {
         </div>
 
         <div className="panel pad mb-6 min-h-screen max-h-full">
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="input-sleek"
-          >
-            <option value="">Todos los estados</option>
-            <option value="Pagada">Pagadas</option>
-            <option value="Impaga">Impagas</option>
-            <option value="Pendiente">Pendientes</option>
-          </select>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input
+              type="text"
+              placeholder="Buscar por solicitud o nro cuota..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="input-sleek"
+            />
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="input-sleek"
+            >
+              <option value="">Todos los estados</option>
+              <option value="Pagada">Pagadas</option>
+              <option value="Impaga">Impagas</option>
+              <option value="Pendiente">Pendientes</option>
+            </select>
+          </div>
 
-          {loading && <div className="text-center py-8">Cargando...</div>}
-          {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
-              {error}
-            </div>
-          )}
+          {loading && <LoadingState />}
+          {error && <ErrorState message={error} />}
 
           {!loading && !error && (
             <div className="p-4 mb-4">
@@ -304,9 +427,7 @@ export default function CuotasPage() {
                   </tbody>
                 </table>
                 {filteredCuotas.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
-                    No hay cuotas para mostrar
-                  </div>
+                  <EmptyState message="No hay cuotas para mostrar" />
                 )}
               </div>
               {filteredCuotas.length > 0 && (
@@ -328,7 +449,7 @@ export default function CuotasPage() {
                     >
                       ←
                     </button>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-around gap-2">
                       <span className="text-sm">Página</span>
                       <input
                         type="number"
@@ -338,7 +459,7 @@ export default function CuotasPage() {
                         }
                         min="1"
                         max={totalPages}
-                        className="w-12 input-sleek text-sm text-center"
+                        className="w-18 input-sleek text-sm text-center"
                       />
                       <span className="text-sm">de {totalPages}</span>
                     </div>
@@ -360,38 +481,234 @@ export default function CuotasPage() {
         </div>
 
         {showView && viewCuota && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-[2px] flex items-center justify-center z-50">
-            <div className="panel pad max-w-2xl w-full">
-              <h2 className="text-2xl font-bold mb-4">Detalle de Cuota</h2>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <strong>Solicitud:</strong> {viewCuota.nrosolicitud}
+          <div className="fixed inset-0 z-50 flex items-center justify-center m-4">
+            {/* Backdrop */}
+            <div
+              className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+              onClick={() => {
+                setShowView(false);
+                setViewComprobantes([]);
+              }}
+            />
+
+            {/* Modal */}
+            <div className="flex  flex-col m-19 gap-4 justify-around items-center relative h-3/4 w-full max-w-xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+              {/* Header */}
+              <div className="flex items-center justify-between w-11/12 gap-4 h-1/4  border-b border-slate-100 m-10 p-15">
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-white shadow-sm">
+                    i
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-slate-900 leading-6">
+                      Detalle de Cuota
+                    </h2>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Información completa de la cuota y sus comprobantes.
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <strong>Nro Cuota:</strong> {viewCuota.nrocuota}
-                </div>
-                <div>
-                  <strong>Importe:</strong> ${viewCuota.importe}
-                </div>
-                <div>
-                  <strong>Vencimiento:</strong>{" "}
-                  {viewCuota.vencimiento
-                    ? formatDate(viewCuota.vencimiento)
-                    : "-"}
-                </div>
-                <div>
-                  <strong>Estado:</strong>{" "}
-                  {viewCuota.estado === 0
-                    ? "Impaga"
-                    : viewCuota.estado === 2
-                      ? "Pagada"
-                      : "Pendiente"}
-                </div>
-              </div>
-              <div className="flex gap-2 mt-4">
+
                 <button
-                  className="ghost-button flex-1"
-                  onClick={() => setShowView(false)}
+                  type="button"
+                  onClick={() => {
+                    setShowView(false);
+                    setViewComprobantes([]);
+                  }}
+                  className="rounded-lg px-2 py-1 text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition"
+                  aria-label="Cerrar"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="flex flex-col  h-full  w-11/12">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 sm:col-span-2">
+                    <div className="text-xs font-medium text-slate-500">
+                      Solicitud
+                    </div>
+                    <div className="mt-1 text-sm font-semibold text-slate-900">
+                      {viewCuota.relasolicitud || "-"}
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="text-xs font-medium text-slate-500">
+                      Cliente
+                    </div>
+                    <div className="mt-1 text-sm font-semibold text-slate-900">
+                      {viewSolicitudLoading
+                        ? "Cargando..."
+                        : viewSolicitud?.cliente?.appynom ||
+                          viewSolicitud?.cliente?.cliente_nombre ||
+                          viewSolicitud?.appynom ||
+                          "Sin datos"}
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="text-xs font-medium text-slate-500">
+                      DNI
+                    </div>
+                    <div className="mt-1 text-sm font-semibold text-slate-900">
+                      {viewSolicitudLoading
+                        ? "Cargando..."
+                        : viewSolicitud?.cliente?.dni ||
+                          viewSolicitud?.dni ||
+                          "-"}
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 sm:col-span-2">
+                    <div className="text-xs font-medium text-slate-500">
+                      Producto
+                    </div>
+                    <div className="mt-1 text-sm font-semibold text-slate-900">
+                      {viewSolicitudLoading
+                        ? "Cargando..."
+                        : viewSolicitud?.producto?.descripcion ||
+                          viewSolicitud?.producto_descripcion ||
+                          viewSolicitud?.prdescripcion ||
+                          "-"}
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="text-xs font-medium text-slate-500">
+                      Nro Cuota
+                    </div>
+                    <div className="mt-1 text-sm font-semibold text-slate-900">
+                      {viewCuota.nrocuota ?? "-"}
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="text-xs font-medium text-slate-500">
+                      Importe
+                    </div>
+                    <div className="mt-1 text-sm font-semibold text-slate-900">
+                      $
+                      {Number(viewCuota.importe || 0).toLocaleString("es-AR", {
+                        minimumFractionDigits: 2,
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="text-xs font-medium text-slate-500">
+                      {Number(viewCuota.estado) === 2
+                        ? "Fecha de pago"
+                        : "Vencimiento"}
+                    </div>
+                    <div className="mt-1 text-sm font-semibold text-slate-900">
+                      {Number(viewCuota.estado) === 2
+                        ? viewCuota.fecha
+                          ? formatDate(viewCuota.fecha)
+                          : "-"
+                        : viewCuota.vencimiento
+                          ? formatDate(viewCuota.vencimiento)
+                          : "-"}
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="text-xs font-medium text-slate-500">
+                      Estado
+                    </div>
+                    <div className="mt-1 text-sm font-semibold text-slate-900">
+                      {viewCuota.estado === 0
+                        ? "Impaga"
+                        : viewCuota.estado === 2
+                          ? "Pagada"
+                          : "Pendiente"}
+                    </div>
+                  </div>
+
+                  {viewSolicitudError && (
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700 sm:col-span-2">
+                      {viewSolicitudError}
+                    </div>
+                  )}
+
+                  {viewReciboError && (
+                    <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 sm:col-span-2">
+                      {viewReciboError}
+                    </div>
+                  )}
+                </div>
+
+                {viewComprobantes.length > 0 && (
+                  <div className="mt-5">
+                    <div className="mb-2 flex items-center justify-between">
+                      <div className="text-sm font-semibold text-slate-900">
+                        Comprobantes
+                      </div>
+                      <div className="text-xs text-slate-500">
+                        {viewComprobantes.length} archivo(s)
+                      </div>
+                    </div>
+
+                    <div className=" max-h-48 overflow-auto rounded-xl border w-full border-slate-200 bg-white">
+                      <ul className="divide-y divide-slate-100">
+                        {viewComprobantes.map((c) => (
+                          <li key={c.idcomprobante} className="p-3">
+                            <div className="flex items-center justify-between gap-3 text-sm rounded-lg px-2 py-2 hover:bg-slate-50 transition">
+                              <div className="flex justify-center min-w-0 w-full ">
+                                <div className="flex flex-row w-11/12 items-center justify-between">
+                                  <div className="truncate font-medium text-slate-800">
+                                    {c.archivo_nombre || c.archivo_url}
+                                    <div className="text-xs text-slate-500 mt-1">
+                                      Subido:{" "}
+                                      {formatFechaComprobante(c.created_at)}
+                                    </div>
+                                  </div>
+                                  <a
+                                    href={c.archivo_url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="shrink-0 text-xs font-semibold text-blue-700"
+                                  >
+                                    Abrir
+                                  </a>
+                                </div>
+                              </div>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                )}
+
+                {viewComprobantes.length === 0 && (
+                  <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                    No hay comprobantes cargados para esta cuota.
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="flex h-20 flex-col-reverse gap-2 border-t border-slate-100 p-5 sm:flex-row justify-end             items-center w-11/12">
+                <div className="sm:col-span-2">
+                  <button
+                    type="button"
+                    className="ghost-button w-full inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50 transition disabled:opacity-50"
+                    onClick={handleDescargarRecibo}
+                    disabled={viewReciboLoading}
+                  >
+                    {viewReciboLoading
+                      ? "Generando recibo..."
+                      : "Descargar recibo PDF"}
+                  </button>
+                </div>
+                <button
+                  className="ghost-button w-20 inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50 transition "
+                  onClick={() => {
+                    setShowView(false);
+                    setViewComprobantes([]);
+                  }}
                 >
                   Cerrar
                 </button>
@@ -401,27 +718,72 @@ export default function CuotasPage() {
         )}
 
         {showEdit && editCuota && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-[2px] flex items-center justify-center z-50">
-            <div className="panel pad max-w-md w-full">
-              <h2 className="text-2xl font-bold mb-4">Editar Cuota</h2>
-              {editError && (
-                <div className="bg-red-100 text-red-700 p-3 rounded mb-4">
-                  {editError}
+          <div className="fixed inset-0 z-50 flex items-center  justify-center m-4 ">
+            {/* Backdrop */}
+            <div
+              className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+              onClick={() => setShowEdit(false)}
+            />
+
+            {/* Modal */}
+            <div className="flex  flex-col m-19 gap-4 justify-around items-center relative h-2/5 w-full max-w-xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+              {/* Header */}
+              <div className="flex items-center justify-between w-11/12 gap-4 h-1/5  border-b border-slate-100 m-10 p-15">
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-white shadow-sm">
+                    ✎
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-slate-900 leading-6">
+                      Editar Cuota
+                    </h2>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Actualizá el importe de la cuota seleccionada.
+                    </p>
+                  </div>
                 </div>
-              )}
-              <div className="space-y-3">
-                <div className="text-sm">
-                  <strong>Solicitud:</strong> {editCuota.nroSolicitud}
+
+                <button
+                  type="button"
+                  onClick={() => setShowEdit(false)}
+                  className="rounded-lg px-2 py-1 text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition"
+                  aria-label="Cerrar"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="flex flex-col min-h-2/5 gap-4 justify-center w-11/12">
+                {editError && (
+                  <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    {editError}
+                  </div>
+                )}
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 mb-4">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="text-xs font-medium text-slate-500">
+                      Solicitud
+                    </div>
+                    <div className="mt-1 text-sm font-semibold text-slate-900">
+                      {editCuota.nroSolicitud}
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="text-xs font-medium text-slate-500">
+                      Nro Cuota
+                    </div>
+                    <div className="mt-1 text-sm font-semibold text-slate-900">
+                      {editCuota.nroCuota}
+                    </div>
+                  </div>
                 </div>
-                <div className="text-sm">
-                  <strong>Nro Cuota:</strong> {editCuota.nroCuota}
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold mb-1">
+                <div className="mb-4">
+                  <label className="block text-sm font-semibold text-slate-800">
                     Importe
                   </label>
                   <input
-                    className="w-full input-sleek"
+                    className="w-full input-sleek mt-2"
                     type="number"
                     step="0.01"
                     placeholder="Importe"
@@ -435,16 +797,241 @@ export default function CuotasPage() {
                   />
                 </div>
               </div>
-              <div className="flex gap-2 mt-4">
+
+              {/* Footer */}
+              <div className="flex  h-1/5 gap-2 border-t border-slate-100 p-5 sm:flex-row sm:justify-center items-center w-11/12">
                 <button
-                  className="action-button flex-1"
+                  className="action-button inline-flex w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50 transition sm:w-auto"
+                  onClick={() => setShowEdit(false)}
+                >
+                  Cancelar
+                </button>
+                <button
+                  className="ghost-button inline-flex w-full items-center justify-center rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 transition sm:w-auto"
                   onClick={handleGuardarImporte}
                 >
                   Guardar
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showPay && payCuota && (
+          <div className="fixed inset-0 z-50 flex items-center  justify-center m-4 ">
+            {/* Backdrop */}
+            <div
+              className="absolute inset-0  bg-slate-950/60  backdrop-blur-sm"
+              onClick={() => {
+                setShowPay(false);
+                setPayCuota(null);
+                setPayFile(null);
+                setComprobantes([]);
+                setPayError(null);
+              }}
+            />
+
+            {/* Modal */}
+            <div className="flex  flex-col m-19 gap-4 justify-around items-center relative h-2/4 w-full max-w-xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+              {/* Header */}
+              <div className="flex items-center justify-between w-11/12 gap-4 h-1/4  border-b border-slate-100 m-10 p-15">
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-white shadow-sm">
+                    $
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-slate-900 leading-6">
+                      Pago de Cuota
+                    </h2>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Confirmá el pago y adjuntá el comprobante (opcional).
+                    </p>
+                  </div>
+                </div>
+
                 <button
-                  className="ghost-button flex-1"
-                  onClick={() => setShowEdit(false)}
+                  type="button"
+                  onClick={() => {
+                    setShowPay(false);
+                    setPayCuota(null);
+                    setPayFile(null);
+                    setComprobantes([]);
+                    setPayError(null);
+                  }}
+                  className="rounded-lg px-2 py-1 text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition"
+                  aria-label="Cerrar"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="flex flex-col  h-full justify- w-11/12">
+                {payError && (
+                  <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    {payError}
+                  </div>
+                )}
+
+                {/* Resumen */}
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="text-xs font-medium text-slate-500">
+                      Solicitud
+                    </div>
+                    <div className="mt-1 text-sm font-semibold text-slate-900">
+                      {payCuota.nroSolicitud || "-"}
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="text-xs font-medium text-slate-500">
+                      Nro Cuota
+                    </div>
+                    <div className="mt-1 text-sm font-semibold text-slate-900">
+                      {payCuota.nroCuota}
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="text-xs font-medium text-slate-500">
+                      Importe
+                    </div>
+                    <div className="mt-1 text-sm font-semibold text-slate-900">
+                      $
+                      {Number(payCuota.importe).toLocaleString("es-AR", {
+                        minimumFractionDigits: 2,
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="text-xs font-medium text-slate-500">
+                      Vencimiento
+                    </div>
+                    <div className="mt-1 text-sm font-semibold text-slate-900">
+                      {payCuota.vencimiento
+                        ? formatDate(payCuota.vencimiento)
+                        : "-"}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Upload */}
+                <div className="mt-5 h-full">
+                  <div className="flex flex-col justify-end h-3/12">
+                    <label className="block text-sm font-semibold text-slate-800">
+                      Comprobante (PDF)
+                    </label>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Podés adjuntarlo ahora o subirlo más tarde.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col mt-3 h-8/12 rounded-xl border items-center border-dashed border-slate-300 bg-white p-4 hover:bg-slate-50 transition">
+                    <div className="flex flex-col gap-3 h-10 w-11/12 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="text-sm text-slate-700">
+                        {payFile ? (
+                          <div className="flex items-center gap-2">
+                            <span className="inline-flex h-6 items-center rounded-md bg-slate-900 px-2 text-xs font-semibold text-white">
+                              PDF
+                            </span>
+                            <span className="font-medium">{payFile.name}</span>
+                            <span className="text-slate-400 text-xs">
+                              ({Math.round(payFile.size / 1024)} KB)
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-slate-600 ">
+                            Seleccioná un archivo PDF para adjuntar.
+                          </span>
+                        )}
+                      </div>
+
+                      <label className="inline-flex cursor-pointer items-center justify-center rounded-sm w-2/6 border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50 active:scale-[0.99] transition">
+                        {payFile ? "Cambiar archivo" : "Elegir archivo"}
+                        <input
+                          type="file"
+                          accept="application/pdf"
+                          className="hidden"
+                          onChange={(e) =>
+                            setPayFile(
+                              e.target.files ? e.target.files[0] : null,
+                            )
+                          }
+                        />
+                      </label>
+                    </div>
+                    <div className="flex justify-start w-11/12">
+                      {payFile && (
+                        <button
+                          type="button"
+                          className="mt-3 text-xs font-semibold text-slate-600 hover:text-slate-900 underline underline-offset-4"
+                          onClick={() => setPayFile(null)}
+                        >
+                          Quitar archivo
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Comprobantes previos */}
+                {comprobantes.length > 0 && (
+                  <div className="mt-5">
+                    <div className="mb-2 flex items-center justify-between">
+                      <div className="text-sm font-semibold text-slate-900">
+                        Comprobantes previos
+                      </div>
+                      <div className="text-xs text-slate-500">
+                        {comprobantes.length} archivo(s)
+                      </div>
+                    </div>
+
+                    <div className="max-h-40 overflow-auto rounded-xl border border-slate-200 bg-white">
+                      <ul className="divide-y divide-slate-100">
+                        {comprobantes.map((c) => (
+                          <li key={c.idcomprobante} className="p-3">
+                            <a
+                              href={c.archivo_url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="flex items-center justify-between gap-3 text-sm hover:bg-slate-50 rounded-lg px-2 py-2 transition"
+                            >
+                              <span className="truncate font-medium text-slate-800">
+                                {c.archivo_nombre || c.archivo_url}
+                              </span>
+                              <span className="shrink-0 text-xs font-semibold text-blue-700">
+                                Abrir
+                              </span>
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="flex flex-col-reverse h-20 gap-2 border-t border-slate-100 p-5 sm:flex-row sm:justify-center items-center w-11/12">
+                <button
+                  className="flex-1 h-10 action-button disabled:opacity-50"
+                  onClick={handleConfirmarPago}
+                  disabled={payLoading}
+                >
+                  {payLoading ? "Procesando..." : "Confirmar pago"}
+                </button>
+                <button
+                  className="flex-1 ghost-button h-10"
+                  onClick={() => {
+                    setShowPay(false);
+                    setPayCuota(null);
+                    setPayFile(null);
+                    setComprobantes([]);
+                    setPayError(null);
+                  }}
+                  disabled={payLoading}
                 >
                   Cancelar
                 </button>

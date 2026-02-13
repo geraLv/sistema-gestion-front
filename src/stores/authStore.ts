@@ -3,41 +3,38 @@ import type { AuthState, Usuario } from "../types";
 
 interface AuthStore extends AuthState {
   setUsuario: (usuario: Usuario | null) => void;
-  setToken: (token: string | null) => void;
   setIsLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
+  setHasHydrated: (value: boolean) => void;
   logout: () => void;
-  login: (usuario: Usuario, token: string) => void;
+  login: (usuario: Usuario) => void;
 }
 
 const useAuthStore = create<AuthStore>((set) => ({
   usuario: null,
-  token: localStorage.getItem("token") || null,
-  isAuthenticated: !!localStorage.getItem("token"),
+  token: null,
+  isAuthenticated: false,
   isLoading: false,
   error: null,
+  hasHydrated: false,
 
-  setUsuario: (usuario) => set({ usuario }),
-  setToken: (token) => {
-    if (token) {
-      localStorage.setItem("token", token);
-      set({ token, isAuthenticated: true });
-    } else {
-      localStorage.removeItem("token");
-      set({ token: null, isAuthenticated: false });
-    }
-  },
+  setUsuario: (usuario) =>
+    set({
+      usuario,
+      isAuthenticated: !!usuario,
+      error: null,
+      hasHydrated: true,
+    }),
   setIsLoading: (loading) => set({ isLoading: loading }),
   setError: (error) => set({ error }),
+  setHasHydrated: (value) => set({ hasHydrated: value }),
 
-  login: (usuario, token) => {
-    localStorage.setItem("token", token);
-    set({ usuario, token, isAuthenticated: true, error: null });
+  login: (usuario) => {
+    set({ usuario, isAuthenticated: true, error: null });
   },
 
   logout: () => {
-    localStorage.removeItem("token");
-    set({ usuario: null, token: null, isAuthenticated: false });
+    set({ usuario: null, token: null, isAuthenticated: false, hasHydrated: true });
   },
 }));
 

@@ -14,10 +14,10 @@ import type {
 // Autenticación
 export const authApi = {
   login: (usuario: string, password: string) =>
-    apiClient.post<ApiResponse<{ token: string; userData: Usuario }>>(
-      "/auth/login",
-      { usuario, password },
-    ),
+    apiClient.post<ApiResponse<{ userData: Usuario }>>("/auth/login", {
+      usuario,
+      password,
+    }),
 
   validateToken: () =>
     apiClient.post<ApiResponse<Usuario>>("/auth/validate-token", {}),
@@ -28,21 +28,21 @@ export const authApi = {
     apiClient.post("/auth/change-password", { currentPassword, newPassword }),
 
   logout: () => apiClient.post("/auth/logout", {}),
+  refreshToken: () => apiClient.post("/auth/refresh-token", {}),
 };
 
 // Clientes
 export const clientesApi = {
   getAll: async () => {
     const response = await apiClient.get<ApiResponse<Cliente[]>>("/clientes");
-    console.log("cliente:", response);
-    return response.data || [];
+    return response.data.data || [];
   },
 
   getById: async (id: number) => {
     const response = await apiClient.get<ApiResponse<Cliente>>(
       `/clientes/${id}`,
     );
-    return response.data || null;
+    return response.data.data || null;
   },
 
   search: async (q: string) => {
@@ -52,7 +52,7 @@ export const clientesApi = {
         params: { q },
       },
     );
-    return response.data || [];
+    return response.data.data || [];
   },
 
   create: async (data: Partial<Cliente>) => {
@@ -60,7 +60,7 @@ export const clientesApi = {
       "/clientes",
       data,
     );
-    return response.data;
+    return response.data.data;
   },
 
   update: async (id: number, data: Partial<Cliente>) => {
@@ -68,7 +68,7 @@ export const clientesApi = {
       ...data,
       idcliente: id,
     });
-    return response.data;
+    return response.data.data;
   },
 };
 
@@ -77,14 +77,14 @@ export const localidadesApi = {
   getAll: async () => {
     const response =
       await apiClient.get<ApiResponse<Localidad[]>>("/localidades");
-    return response.data || [];
+    return response.data.data || [];
   },
 
   getById: async (id: number) => {
     const response = await apiClient.get<ApiResponse<Localidad>>(
       `/localidades/${id}`,
     );
-    return response.data || null;
+    return response.data.data || null;
   },
 
   search: async (q: string) => {
@@ -94,7 +94,7 @@ export const localidadesApi = {
         params: { q },
       },
     );
-    return response.data || [];
+    return response.data.data || [];
   },
 };
 
@@ -107,22 +107,21 @@ export const solicitudesApi = {
         params: { filtro },
       },
     );
-    console.log("solicitudaes:", response);
-    return response.data || [];
+    return response.data.data || [];
   },
 
   getById: async (id: number) => {
     const response = await apiClient.get<ApiResponse<Solicitud>>(
       `/solicitudes/${id}`,
     );
-    return response.data || null;
+    return response.data.data || null;
   },
 
   getByNro: async (nro: string) => {
     const response = await apiClient.get<ApiResponse<Solicitud>>(
       `/solicitudes/nro/${nro}`,
     );
-    return response.data || null;
+    return response.data.data || null;
   },
 
   create: async (data: Partial<Solicitud>) => {
@@ -130,7 +129,7 @@ export const solicitudesApi = {
       "/solicitudes",
       data,
     );
-    return response.data;
+    return response.data.data;
   },
 
   update: async (id: number, data: Partial<Solicitud>) => {
@@ -138,7 +137,7 @@ export const solicitudesApi = {
       `/solicitudes/${id}`,
       data,
     );
-    return response.data;
+    return response.data.data;
   },
 
   updateObservaciones: async (nro: string, observaciones: string) => {
@@ -152,7 +151,7 @@ export const solicitudesApi = {
     const response = await apiClient.get<ApiResponse<Cuota[]>>(
       `/solicitudes/${id}/cuotas`,
     );
-    return response.data || [];
+    return response.data.data || [];
   },
 
   addCuotas: async (id: number, cantCuotas: number) => {
@@ -162,7 +161,7 @@ export const solicitudesApi = {
         cantCuotas,
       },
     );
-    return response.data || [];
+    return response.data.data || [];
   },
 };
 
@@ -172,7 +171,6 @@ export const cuotasApi = {
     const response = await apiClient.get<ApiResponse<Cuota[]>>("/cuotas", {
       params: { filtro },
     });
-    console.log("cuotas:", response);
     return response.data.data || [];
   },
 
@@ -190,19 +188,36 @@ export const cuotasApi = {
 
   pagar: async (idcuota: number) => {
     const response = await apiClient.post("/cuotas/pagar", { idcuota });
-    return response.data;
+    return response.data.data || response.data;
   },
 
   pagarMultiples: async (idcuotas: number[]) => {
     const response = await apiClient.post("/cuotas/pagar-multiples", {
       idcuotas,
     });
-    return response.data;
+    return response.data.data || response.data;
   },
 
   updateImporte: async (id: number, importe: number) => {
     const response = await apiClient.put(`/cuotas/${id}/importe`, { importe });
-    return response.data;
+    return response.data.data || response.data;
+  },
+  getComprobantes: async (idcuota: number) => {
+    const response = await apiClient.get<ApiResponse<any[]>>(
+      `/cuotas/${idcuota}/comprobantes`,
+    );
+    console.log("comprobantes:", response);
+    return response.data.data || [];
+  },
+  uploadComprobante: async (idcuota: number, file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    const response = await apiClient.post<ApiResponse<any>>(
+      `/cuotas/${idcuota}/comprobante`,
+      form,
+      { headers: { "Content-Type": "multipart/form-data" } },
+    );
+    return response.data.data;
   },
 };
 
@@ -234,21 +249,21 @@ export const vendedoresApi = {
   getAll: async () => {
     const response =
       await apiClient.get<ApiResponse<Vendedor[]>>("/vendedores");
-    return response.data || [];
+    return response.data.data || [];
   },
 
   getById: async (id: number) => {
     const response = await apiClient.get<ApiResponse<Vendedor>>(
       `/vendedores/${id}`,
     );
-    return response.data || null;
+    return response.data.data || null;
   },
 
   getActivos: async () => {
     const response = await apiClient.get<ApiResponse<Vendedor[]>>(
       "/vendedores/activos",
     );
-    return response.data || [];
+    return response.data.data || [];
   },
 
   search: async (q: string) => {
@@ -258,7 +273,7 @@ export const vendedoresApi = {
         params: { q },
       },
     );
-    return response.data || [];
+    return response.data.data || [];
   },
 };
 
@@ -266,20 +281,20 @@ export const vendedoresApi = {
 export const productosApi = {
   getAll: async () => {
     const response = await apiClient.get<ApiResponse<Producto[]>>("/productos");
-    return response.data || [];
+    return response.data.data || [];
   },
 
   getById: async (id: number) => {
     const response = await apiClient.get<ApiResponse<Producto>>(
       `/productos/${id}`,
     );
-    return response.data || null;
+    return response.data.data || null;
   },
 
   getActivos: async () => {
     const response =
       await apiClient.get<ApiResponse<Producto[]>>("/productos/activos");
-    return response.data || [];
+    return response.data.data || [];
   },
 
   search: async (q: string) => {
@@ -289,7 +304,7 @@ export const productosApi = {
         params: { q },
       },
     );
-    return response.data || [];
+    return response.data.data || [];
   },
 };
 
@@ -297,7 +312,6 @@ export const productosApi = {
 export const adminApi = {
   getUsers: async () => {
     const response = await apiClient.get<ApiResponse<any[]>>("/admin/users");
-    console.log("users", response);
     return response.data.data || [];
   },
   createUser: async (payload: {
@@ -325,15 +339,14 @@ export const adminApi = {
     return response.data.data;
   },
   setUserStatus: async (id: number, status: number) => {
-    console.log(status);
     const response = await apiClient.patch(`/admin/users/${id}/status`, {
       status,
     });
-    return response.data;
+    return response.data.data || response.data;
   },
   setUserRole: async (id: number, role: string) => {
     const response = await apiClient.patch(`/admin/users/${id}/role`, { role });
-    return response.data;
+    return response.data.data || response.data;
   },
 };
 
@@ -355,9 +368,8 @@ export const auditApi = {
 
 export const vendedoresAdminApi = {
   getAll: async () => {
-    const response = await apiClient.get<ApiResponse<any[]>>(
-      "/admin/vendedores",
-    );
+    const response =
+      await apiClient.get<ApiResponse<any[]>>("/admin/vendedores");
     return response.data.data || [];
   },
   create: async (payload: { apellidonombre: string; estado?: number }) => {
@@ -375,11 +387,10 @@ export const vendedoresAdminApi = {
     return response.data.data;
   },
   setStatus: async (id: number, estado: number) => {
-    const response = await apiClient.patch(
-      `/admin/vendedores/${id}/status`,
-      { estado },
-    );
-    return response.data;
+    const response = await apiClient.patch(`/admin/vendedores/${id}/status`, {
+      estado,
+    });
+    return response.data.data || response.data;
   },
 };
 

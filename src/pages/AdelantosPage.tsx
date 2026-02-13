@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import Layout from "../components/Layout";
+import { EmptyState, ErrorState, LoadingState } from "../components/Status";
 import { adelantosApi, solicitudesApi } from "../api/endpoints";
 
 interface AdelantoView {
@@ -233,12 +234,8 @@ export default function AdelantosPage() {
           </div>
         </div>
 
-        {loading && <div className="text-center py-8">Cargando...</div>}
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
-            {error}
-          </div>
-        )}
+        {loading && <LoadingState />}
+        {error && <ErrorState message={error} />}
 
         {!loading && !error && (
           <div className="bg-white rounded-lg shadow-md overflow-hidden">
@@ -300,7 +297,7 @@ export default function AdelantosPage() {
             </table>
             {adelantos.length === 0 && (
               <div className="text-center py-8 text-gray-500">
-                No hay adelantos para mostrar
+                <EmptyState message="No hay adelantos para mostrar" />
               </div>
             )}
           </div>

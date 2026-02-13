@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import Layout from "../components/Layout";
+import { EmptyState, ErrorState, LoadingState } from "../components/Status";
 import { clientesApi, localidadesApi } from "../api/endpoints";
 
 interface ClienteView {
@@ -316,12 +317,8 @@ export default function ClientesPage() {
             className="w-full input-sleek"
           />
 
-          {loading && <div className="text-center py-8">Cargando...</div>}
-          {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
-              {error}
-            </div>
-          )}
+          {loading && <LoadingState />}
+          {error && <ErrorState message={error} />}
 
           {!loading && !error && (
             <div>
@@ -381,9 +378,7 @@ export default function ClientesPage() {
                   </tbody>
                 </table>
                 {filteredClientes.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
-                    No hay clientes para mostrar
-                  </div>
+                  <EmptyState message="No hay clientes para mostrar" />
                 )}
               </div>
               {filteredClientes.length > 0 && (
@@ -405,7 +400,7 @@ export default function ClientesPage() {
                     >
                       ←
                     </button>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-around gap-2">
                       <span className="text-sm">Página</span>
                       <input
                         type="number"
@@ -415,7 +410,7 @@ export default function ClientesPage() {
                         }
                         min="1"
                         max={totalPages}
-                        className="w-12 input-sleek text-sm text-center"
+                        className="w-18 input-sleek text-sm text-center"
                       />
                       <span className="text-sm">de {totalPages}</span>
                     </div>
