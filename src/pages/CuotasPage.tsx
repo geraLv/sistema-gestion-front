@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import Layout from "../components/Layout";
 import { EmptyState, ErrorState, LoadingState } from "../components/Status";
 import { cuotasApi, reportesApi, solicitudesApi } from "../api/endpoints";
@@ -6,6 +7,8 @@ import { cuotasApi, reportesApi, solicitudesApi } from "../api/endpoints";
 interface CuotaView {
   id: number;
   nroSolicitud: string;
+  clienteNombre: string;
+  clienteDni: string;
   nroCuota: number;
   importe: number;
   vencimiento: string;
@@ -40,26 +43,78 @@ export default function CuotasPage() {
   const [selectedCuotas, setSelectedCuotas] = useState<number[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(15);
+  const [totalCuotas, setTotalCuotas] = useState(0);
 
   useEffect(() => {
-    loadCuotas();
-  }, []);
+    const handler = setTimeout(() => {
+      setCurrentPage(1);
+      loadCuotas(1);
+    }, 350);
 
-  const loadCuotas = async () => {
+    return () => clearTimeout(handler);
+  }, [searchTerm, statusFilter]);
+
+  const buildCuotasFiltro = (value: string) => {
+    switch (value) {
+      case "Pagada":
+        return "pagadas";
+      case "Impaga":
+        return "impagas";
+      case "Pendiente":
+        return "pendientes";
+      case "Vencidas":
+        return "vencidas";
+      default:
+        return undefined;
+    }
+  };
+
+  const handleToggleVencidas = () => {
+    setStatusFilter((prev) => (prev === "Vencidas" ? "" : "Vencidas"));
+  };
+
+  const loadCuotas = async (
+    page = currentPage,
+    query = searchTerm,
+    pageSize = rowsPerPage,
+  ) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await cuotasApi.getAll();
-      const mapped = (response || []).map((c: any) => ({
-        id: c.idcuota,
-        nroSolicitud: c.relasolicitud,
-        nroCuota: c.nrocuota,
-        importe: c.importe,
-        vencimiento: c.vencimiento,
-        estado:
-          c.estado === 0 ? "Impaga" : c.estado === 2 ? "Pagada" : "Pendiente",
-      }));
+      const filtro = buildCuotasFiltro(statusFilter);
+      const q = query.trim() || undefined;
+      const response = await cuotasApi.getPaged({
+        filtro,
+        q,
+        page,
+        pageSize,
+      });
+      const mapped = (response.items || []).map((c: any) => {
+        const solicitud = Array.isArray(c.solicitud)
+          ? c.solicitud[0]
+          : c.solicitud;
+        const cliente = Array.isArray(solicitud?.cliente)
+          ? solicitud.cliente[0]
+          : solicitud?.cliente;
+        return {
+          id: c.idcuota,
+          nroSolicitud:
+            solicitud?.nrosolicitud || c.nrosolicitud || c.relasolicitud,
+          clienteNombre:
+            cliente?.appynom ||
+            c.cliente_nombre ||
+            c.appynom ||
+            "Sin datos",
+          clienteDni: cliente?.dni || c.dni || "-",
+          nroCuota: c.nrocuota,
+          importe: c.importe,
+          vencimiento: c.vencimiento,
+          estado:
+            c.estado === 0 ? "Impaga" : c.estado === 2 ? "Pagada" : "Pendiente",
+        };
+      });
       setCuotas(mapped);
+      setTotalCuotas(response.total || 0);
     } catch (err) {
       const errorMsg =
         err instanceof Error ? err.message : "Error al cargar cuotas";
@@ -69,30 +124,23 @@ export default function CuotasPage() {
     }
   };
 
-  const filteredCuotas = cuotas.filter((cuota) => {
-    const matchesStatus = !statusFilter || cuota.estado === statusFilter;
-    const search = searchTerm.trim().toLowerCase();
-    if (!search) return matchesStatus;
-    const nroSolicitud = String(cuota.nroSolicitud || "").toLowerCase();
-    const nroCuota = String(cuota.nroCuota || "").toLowerCase();
-    return (
-      matchesStatus &&
-      (nroSolicitud.includes(search) || nroCuota.includes(search))
-    );
-  });
+  const filteredCuotas = cuotas;
 
-  const totalPages = Math.ceil(filteredCuotas.length / rowsPerPage);
-  const startIndex = (currentPage - 1) * rowsPerPage;
-  const endIndex = startIndex + rowsPerPage;
-  const paginatedCuotas = filteredCuotas.slice(startIndex, endIndex);
+  const totalPages = Math.ceil(
+    Math.max(totalCuotas, cuotas.length) / rowsPerPage,
+  );
 
   const handlePageChange = (page: number) => {
-    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
+    const nextPage = Math.max(1, Math.min(page, totalPages || 1));
+    setCurrentPage(nextPage);
+    loadCuotas(nextPage);
   };
 
   const handleRowsPerPageChange = (value: string) => {
-    setRowsPerPage(parseInt(value));
+    const next = parseInt(value);
+    setRowsPerPage(next);
     setCurrentPage(1);
+    loadCuotas(1, searchTerm, next);
   };
 
   const getStatusColor = (status: string) => {
@@ -308,21 +356,31 @@ export default function CuotasPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <input
               type="text"
-              placeholder="Buscar por solicitud o nro cuota..."
+              placeholder="Buscar por cliente, DNI o solicitud..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="input-sleek"
             />
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="input-sleek"
-            >
-              <option value="">Todos los estados</option>
-              <option value="Pagada">Pagadas</option>
-              <option value="Impaga">Impagas</option>
-              <option value="Pendiente">Pendientes</option>
-            </select>
+            <div className="flex gap-2">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="input-sleek flex-1"
+              >
+                <option value="">Todos los estados</option>
+                <option value="Pagada">Pagadas</option>
+                <option value="Impaga">Impagas</option>
+                <option value="Pendiente">Pendientes</option>
+                <option value="Vencidas">Vencidas</option>
+              </select>
+              <button
+                type="button"
+                onClick={handleToggleVencidas}
+                className={`ghost-button whitespace-nowrap ${statusFilter === "Vencidas" ? "border-red-300 text-red-600" : ""}`}
+              >
+                Vencidas
+              </button>
+            </div>
           </div>
 
           {loading && <LoadingState />}
@@ -352,6 +410,12 @@ export default function CuotasPage() {
                         Solicitud
                       </th>
                       <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">
+                        Cliente
+                      </th>
+                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">
+                        DNI
+                      </th>
+                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">
                         Nro Cuota
                       </th>
                       <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">
@@ -369,7 +433,7 @@ export default function CuotasPage() {
                     </tr>
                   </thead>
                   <tbody className="p-4 m-4 ">
-                    {paginatedCuotas.map((cuota) => (
+                    {filteredCuotas.map((cuota) => (
                       <tr key={cuota.id} className="border-b hover:bg-gray-50">
                         <td className="px-6 py-4 text-sm">
                           <input
@@ -380,6 +444,12 @@ export default function CuotasPage() {
                         </td>
                         <td className="px-6 py-4 text-sm">
                           {cuota.nroSolicitud}
+                        </td>
+                        <td className="px-6 py-4 text-sm">
+                          {cuota.clienteNombre}
+                        </td>
+                        <td className="px-6 py-4 text-sm">
+                          {cuota.clienteDni}
                         </td>
                         <td className="px-6 py-4 text-sm font-semibold">
                           {cuota.nroCuota}
@@ -413,6 +483,12 @@ export default function CuotasPage() {
                           >
                             Editar
                           </button>
+                          <Link
+                            to={`/admin?tab=audit&entity=cuotas&entity_id=${cuota.id}`}
+                            className="text-slate-600 hover:text-slate-800 mr-2"
+                          >
+                            Ver historial
+                          </Link>
                           {cuota.estado === "Impaga" && (
                             <button
                               onClick={() => handlePagar(cuota.id)}
@@ -430,7 +506,7 @@ export default function CuotasPage() {
                   <EmptyState message="No hay cuotas para mostrar" />
                 )}
               </div>
-              {filteredCuotas.length > 0 && (
+              {Math.max(totalCuotas, cuotas.length) > 0 && (
                 <div className="bg-white border-t p-4 flex items-center justify-between">
                   <select
                     value={rowsPerPage}
@@ -472,7 +548,7 @@ export default function CuotasPage() {
                     </button>
                   </div>
                   <span className="text-sm text-gray-600">
-                    {filteredCuotas.length} registros
+                    {Math.max(totalCuotas, cuotas.length)} registros
                   </span>
                 </div>
               )}

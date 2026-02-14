@@ -37,6 +37,19 @@ export const clientesApi = {
     const response = await apiClient.get<ApiResponse<Cliente[]>>("/clientes");
     return response.data.data || [];
   },
+  getPaged: async (params?: { q?: string; page?: number; pageSize?: number }) => {
+    const response = await apiClient.get<ApiResponse<Cliente[]>>("/clientes", {
+      params: {
+        q: params?.q || undefined,
+        page: params?.page || undefined,
+        pageSize: params?.pageSize || undefined,
+      },
+    });
+    return {
+      items: response.data.data || [],
+      total: (response.data as any).total ?? (response.data.data || []).length,
+    };
+  },
 
   getById: async (id: number) => {
     const response = await apiClient.get<ApiResponse<Cliente>>(
@@ -100,14 +113,36 @@ export const localidadesApi = {
 
 // Solicitudes
 export const solicitudesApi = {
-  getAll: async (filtro?: string) => {
+  getAll: async (filtro?: string, q?: string) => {
     const response = await apiClient.get<ApiResponse<Solicitud[]>>(
       "/solicitudes",
       {
-        params: { filtro },
+        params: { filtro, q },
       },
     );
     return response.data.data || [];
+  },
+  getPaged: async (params?: {
+    filtro?: string;
+    q?: string;
+    page?: number;
+    pageSize?: number;
+  }) => {
+    const response = await apiClient.get<ApiResponse<Solicitud[]>>(
+      "/solicitudes",
+      {
+        params: {
+          filtro: params?.filtro || undefined,
+          q: params?.q || undefined,
+          page: params?.page || undefined,
+          pageSize: params?.pageSize || undefined,
+        },
+      },
+    );
+    return {
+      items: response.data.data || [],
+      total: (response.data as any).total ?? (response.data.data || []).length,
+    };
   },
 
   getById: async (id: number) => {
@@ -167,11 +202,30 @@ export const solicitudesApi = {
 
 // Cuotas
 export const cuotasApi = {
-  getAll: async (filtro?: string) => {
+  getAll: async (filtro?: string, q?: string) => {
     const response = await apiClient.get<ApiResponse<Cuota[]>>("/cuotas", {
-      params: { filtro },
+      params: { filtro, q },
     });
     return response.data.data || [];
+  },
+  getPaged: async (params?: {
+    filtro?: string;
+    q?: string;
+    page?: number;
+    pageSize?: number;
+  }) => {
+    const response = await apiClient.get<ApiResponse<Cuota[]>>("/cuotas", {
+      params: {
+        filtro: params?.filtro || undefined,
+        q: params?.q || undefined,
+        page: params?.page || undefined,
+        pageSize: params?.pageSize || undefined,
+      },
+    });
+    return {
+      items: response.data.data || [],
+      total: (response.data as any).total ?? (response.data.data || []).length,
+    };
   },
 
   getById: async (id: number) => {
@@ -180,10 +234,10 @@ export const cuotasApi = {
   },
 
   getForSolicitud: async (idsolicitud: number) => {
-    const response = await apiClient.get<ApiResponse<Cuota[]>>(
+    const response = await apiClient.get<ApiResponse<any>>(
       `/cuotas/solicitud/${idsolicitud}`,
     );
-    return response.data.data || [];
+    return response.data.data || { cuotas: [], resumen: null };
   },
 
   pagar: async (idcuota: number) => {
@@ -353,6 +407,7 @@ export const adminApi = {
 export const auditApi = {
   getLogs: async (params: {
     entity?: string;
+    entity_id?: string | number;
     action?: string;
     actor?: string;
     date_from?: string;
@@ -400,6 +455,14 @@ export const reportesApi = {
     const response = await apiClient.post(
       "/reportes/recibos/cuota",
       { idcuota },
+      { responseType: "blob" },
+    );
+    return response.data as Blob;
+  },
+
+  recibosSolicitudPagados: async (idsolicitud: number) => {
+    const response = await apiClient.get(
+      `/reportes/recibos/solicitud/${idsolicitud}`,
       { responseType: "blob" },
     );
     return response.data as Blob;
@@ -457,5 +520,12 @@ export const reportesApi = {
       responseType: "blob",
     });
     return response.data as Blob;
+  },
+};
+
+export const dashboardApi = {
+  getSummary: async () => {
+    const response = await apiClient.get<ApiResponse<any>>("/dashboard");
+    return response.data.data || null;
   },
 };

@@ -93,4 +93,5 @@ export interface ApiResponse<T> {
   message?: string;
   token?: string;
   userData?: Usuario;
+  total?: number;
 }

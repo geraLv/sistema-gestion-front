@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import Layout from "../components/Layout";
 import { EmptyState, ErrorState, LoadingState } from "../components/Status";
 import {
@@ -6,6 +7,8 @@ import {
   clientesApi,
   productosApi,
   vendedoresApi,
+  cuotasApi,
+  reportesApi,
 } from "../api/endpoints";
 
 interface SolicitudView {
@@ -59,17 +62,37 @@ export default function SolicitudesPage() {
     totalapagar: "",
     observaciones: "",
   });
+  const [clienteSearch, setClienteSearch] = useState("");
+  const [vendedorSearch, setVendedorSearch] = useState("");
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(15);
+  const [totalSolicitudes, setTotalSolicitudes] = useState(0);
+  const [showPlan, setShowPlan] = useState(false);
+  const [planSolicitud, setPlanSolicitud] = useState<SolicitudView | null>(
+    null,
+  );
+  const [planCuotas, setPlanCuotas] = useState<any[]>([]);
+  const [planResumen, setPlanResumen] = useState<any | null>(null);
+  const [planLoading, setPlanLoading] = useState(false);
+  const [planError, setPlanError] = useState<string | null>(null);
+  const [planReciboLoading, setPlanReciboLoading] = useState(false);
 
   useEffect(() => {
-    loadSolicitudes();
     loadClientes();
     loadProductos();
     loadVendedores();
   }, []);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setCurrentPage(1);
+      loadSolicitudes(1, searchTerm);
+    }, 350);
+
+    return () => clearTimeout(handler);
+  }, [searchTerm, statusFilter]);
 
   const loadClientes = async () => {
     try {
@@ -101,12 +124,43 @@ export default function SolicitudesPage() {
     }
   };
 
-  const loadSolicitudes = async () => {
+  const buildSolicitudesFiltro = (value: string) => {
+    switch (value) {
+      case "Pagada":
+        return "pagadas";
+      case "Impaga":
+        return "impagas";
+      case "Pendiente":
+        return "pendientes";
+      default:
+        return undefined;
+    }
+  };
+
+  const formatDate = (date?: string | Date | null) => {
+    if (!date) return "-";
+    const d = new Date(date);
+    if (Number.isNaN(d.getTime())) return "-";
+    return d.toLocaleDateString("es-AR");
+  };
+
+  const loadSolicitudes = async (
+    page = currentPage,
+    query = searchTerm,
+    pageSize = rowsPerPage,
+  ) => {
     try {
       setLoading(true);
       setError(null);
-      const response = (await solicitudesApi.getAll()) as any;
-      const mapped = (response || []).map((s: any) => {
+      const q = (query ?? searchTerm).trim() || undefined;
+      const filtro = buildSolicitudesFiltro(statusFilter);
+      const response = await solicitudesApi.getPaged({
+        filtro,
+        q,
+        page,
+        pageSize,
+      });
+      const mapped = (response.items || []).map((s: any) => {
         const producto =
           Array.isArray(s.producto) && s.producto.length > 0
             ? s.producto[0]
@@ -130,6 +184,7 @@ export default function SolicitudesPage() {
         };
       });
       setSolicitudes(mapped);
+      setTotalSolicitudes(response.total || 0);
     } catch (err) {
       const errorMsg =
         err instanceof Error ? err.message : "Error al cargar solicitudes";
@@ -169,6 +224,8 @@ export default function SolicitudesPage() {
         observacion: formData.observaciones || "",
       } as any);
       setShowModal(false);
+      setClienteSearch("");
+      setVendedorSearch("");
       setFormData({
         clienteId: "",
         vendedorId: "",
@@ -218,6 +275,70 @@ export default function SolicitudesPage() {
     }
   };
 
+  const openBlob = (blob: Blob, filename: string, inline = true) => {
+    const url = URL.createObjectURL(blob);
+    if (inline) {
+      window.open(url, "_blank", "noopener,noreferrer");
+    } else {
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    }
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
+  const handlePlan = async (solicitud: SolicitudView) => {
+    try {
+      setPlanError(null);
+      setPlanLoading(true);
+      setPlanSolicitud(solicitud);
+      setPlanCuotas([]);
+      setPlanResumen(null);
+      setShowPlan(true);
+      const data = await cuotasApi.getForSolicitud(solicitud.id);
+      setPlanCuotas(data?.cuotas || []);
+      setPlanResumen(data?.resumen || null);
+    } catch (err) {
+      setPlanError("No se pudo cargar el plan de pagos.");
+    } finally {
+      setPlanLoading(false);
+    }
+  };
+
+  const handleDescargarReciboCuota = async (idcuota: number) => {
+    setPlanReciboLoading(true);
+    try {
+      const blob = await reportesApi.reciboCuota(idcuota);
+      openBlob(blob, `recibo-cuota-${idcuota}.pdf`, true);
+    } catch (err) {
+      setPlanError("No se pudo generar el recibo.");
+    } finally {
+      setPlanReciboLoading(false);
+    }
+  };
+
+  const handleDescargarRecibosSolicitud = async () => {
+    if (!planSolicitud) return;
+    setPlanReciboLoading(true);
+    try {
+      const blob = await reportesApi.recibosSolicitudPagados(
+        planSolicitud.id,
+      );
+      openBlob(
+        blob,
+        `recibos-solicitud-${planSolicitud.nroSolicitud}.pdf`,
+        true,
+      );
+    } catch (err) {
+      setPlanError("No se pudo generar el PDF de recibos.");
+    } finally {
+      setPlanReciboLoading(false);
+    }
+  };
+
   const handleUpdate = async () => {
     if (!editData) return;
     setSubmitting(true);
@@ -244,28 +365,21 @@ export default function SolicitudesPage() {
     }
   };
 
-  const filteredSolicitudes = solicitudes.filter((solicitud) => {
-    const nroStr = String(solicitud.nroSolicitud || "").toLowerCase();
-    const clienteStr = (solicitud.clienteNombre || "").toLowerCase();
-    const searchLower = searchTerm.toLowerCase();
-    const matchesSearch =
-      nroStr.includes(searchLower) || clienteStr.includes(searchLower);
-    const matchesStatus = !statusFilter || solicitud.estado === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
-
-  const totalPages = Math.ceil(filteredSolicitudes.length / rowsPerPage);
-  const startIndex = (currentPage - 1) * rowsPerPage;
-  const endIndex = startIndex + rowsPerPage;
-  const paginatedSolicitudes = filteredSolicitudes.slice(startIndex, endIndex);
+  const totalPages = Math.ceil(
+    Math.max(totalSolicitudes, solicitudes.length) / rowsPerPage,
+  );
 
   const handlePageChange = (page: number) => {
-    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
+    const nextPage = Math.max(1, Math.min(page, totalPages || 1));
+    setCurrentPage(nextPage);
+    loadSolicitudes(nextPage);
   };
 
   const handleRowsPerPageChange = (value: string) => {
-    setRowsPerPage(parseInt(value));
+    const next = parseInt(value);
+    setRowsPerPage(next);
     setCurrentPage(1);
+    loadSolicitudes(1, searchTerm, next);
   };
 
   const getStatusColor = (status: string) => {
@@ -394,17 +508,11 @@ export default function SolicitudesPage() {
                     }
                   >
                     <option value="">Seleccione el producto</option>
-                    {productos
-                      .filter((p) =>
-                        ["Usado", "Moto", "0 Km"].includes(
-                          String(p.descripcion || ""),
-                        ),
-                      )
-                      .map((p) => (
-                        <option key={p.idproducto} value={p.idproducto}>
-                          {p.descripcion}
-                        </option>
-                      ))}
+                    {productos.map((p) => (
+                      <option key={p.idproducto} value={p.idproducto}>
+                        {p.descripcion}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div>
@@ -526,11 +634,218 @@ export default function SolicitudesPage() {
           </div>
         )}
 
+        {showPlan && planSolicitud && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-[2px] flex items-center justify-center z-50">
+            <div className="panel pad max-w-4xl w-full">
+              <div className="flex items-start justify-between gap-4 mb-4">
+                <div>
+                  <h2 className="text-2xl font-bold">Plan de pagos</h2>
+                  <p className="text-sm text-slate-600 mt-1">
+                    Solicitud {planSolicitud.nroSolicitud} •{" "}
+                    {planSolicitud.clienteNombre} • DNI{" "}
+                    {planSolicitud.clienteDni || "-"} •{" "}
+                    {planSolicitud.productoNombre || "-"}
+                  </p>
+                </div>
+                <button
+                  className="ghost-button"
+                  onClick={() => {
+                    setShowPlan(false);
+                    setPlanCuotas([]);
+                    setPlanResumen(null);
+                    setPlanSolicitud(null);
+                    setPlanError(null);
+                  }}
+                >
+                  Cerrar
+                </button>
+              </div>
+
+              {planLoading && <LoadingState />}
+              {planError && <ErrorState message={planError} />}
+
+              {!planLoading && !planError && (
+                <>
+                  {planResumen && (
+                    <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-4 text-sm">
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                        <div className="text-xs text-slate-500">Total</div>
+                        <div className="font-semibold">
+                          {planResumen.total ?? 0}
+                        </div>
+                      </div>
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                        <div className="text-xs text-slate-500">Pagadas</div>
+                        <div className="font-semibold">
+                          {planResumen.pagadas ?? 0}
+                        </div>
+                      </div>
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                        <div className="text-xs text-slate-500">Impagas</div>
+                        <div className="font-semibold">
+                          {planResumen.impagas ?? 0}
+                        </div>
+                      </div>
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                        <div className="text-xs text-slate-500">Monto total</div>
+                        <div className="font-semibold">
+                          $
+                          {Number(planResumen.montoTotal || 0).toLocaleString(
+                            "es-AR",
+                            {
+                              minimumFractionDigits: 2,
+                            },
+                          )}
+                        </div>
+                      </div>
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                        <div className="text-xs text-slate-500">
+                          Monto pagado
+                        </div>
+                        <div className="font-semibold">
+                          $
+                          {Number(planResumen.montoPagado || 0).toLocaleString(
+                            "es-AR",
+                            {
+                              minimumFractionDigits: 2,
+                            },
+                          )}
+                        </div>
+                      </div>
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                        <div className="text-xs text-slate-500">
+                          Monto impago
+                        </div>
+                        <div className="font-semibold">
+                          $
+                          {Number(planResumen.montoImpago || 0).toLocaleString(
+                            "es-AR",
+                            {
+                              minimumFractionDigits: 2,
+                            },
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="text-sm text-slate-600">
+                      {planCuotas.length} cuota(s)
+                    </div>
+                    <button
+                      className="ghost-button"
+                      onClick={handleDescargarRecibosSolicitud}
+                      disabled={
+                        planReciboLoading ||
+                        !planCuotas.some((c) => Number(c.estado) === 2)
+                      }
+                    >
+                      {planReciboLoading
+                        ? "Generando..."
+                        : "Descargar recibos pagados"}
+                    </button>
+                  </div>
+
+                  <div className="table-shell">
+                    <table className="w-full">
+                      <thead className="table-head">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-sm font-semibold">
+                            Cuota
+                          </th>
+                          <th className="px-4 py-3 text-left text-sm font-semibold">
+                            Importe
+                          </th>
+                          <th className="px-4 py-3 text-left text-sm font-semibold">
+                            Vencimiento
+                          </th>
+                          <th className="px-4 py-3 text-left text-sm font-semibold">
+                            Estado
+                          </th>
+                          <th className="px-4 py-3 text-left text-sm font-semibold">
+                            Fecha pago
+                          </th>
+                          <th className="px-4 py-3 text-center text-sm font-semibold">
+                            Recibo
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {planCuotas.map((c) => (
+                          <tr key={c.idcuota} className="border-b">
+                            <td className="px-4 py-3 text-sm font-semibold">
+                              {c.nrocuota}
+                            </td>
+                            <td className="px-4 py-3 text-sm">
+                              $
+                              {Number(c.importe || 0).toLocaleString("es-AR", {
+                                minimumFractionDigits: 2,
+                              })}
+                            </td>
+                            <td className="px-4 py-3 text-sm">
+                              {formatDate(c.vencimiento)}
+                            </td>
+                            <td className="px-4 py-3 text-sm">
+                              <span
+                                className={`chip ${
+                                  Number(c.estado) === 2
+                                    ? "bg-green-100 text-green-800"
+                                    : Number(c.estado) === 0
+                                      ? "bg-red-100 text-red-800"
+                                      : "bg-yellow-100 text-yellow-800"
+                                }`}
+                              >
+                                {Number(c.estado) === 2
+                                  ? "Pagada"
+                                  : Number(c.estado) === 0
+                                    ? "Impaga"
+                                    : "Pendiente"}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-sm">
+                              {Number(c.estado) === 2
+                                ? formatDate(c.fecha)
+                                : "-"}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-center">
+                              {Number(c.estado) === 2 ? (
+                                <button
+                                  className="text-blue-600 hover:text-blue-800"
+                                  onClick={() =>
+                                    handleDescargarReciboCuota(c.idcuota)
+                                  }
+                                  disabled={planReciboLoading}
+                                >
+                                  Recibo PDF
+                                </button>
+                              ) : (
+                                <span className="text-slate-400">-</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {planCuotas.length === 0 && (
+                      <EmptyState message="No hay cuotas para mostrar" />
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
         <div className="panel pad mb-6 min-h-screen max-h-full">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-3xl font-bold">Solicitudes</h1>
             <button
-              onClick={() => setShowModal(true)}
+              onClick={() => {
+                setClienteSearch("");
+                setVendedorSearch("");
+                setShowModal(true);
+              }}
               className="action-button"
             >
               Nueva Solicitud
@@ -551,6 +866,13 @@ export default function SolicitudesPage() {
                     <label className="block text-sm font-semibold mb-1">
                       Cliente *
                     </label>
+                    <input
+                      type="text"
+                      placeholder="Filtrar cliente por nombre..."
+                      value={clienteSearch}
+                      onChange={(e) => setClienteSearch(e.target.value)}
+                      className="w-full input-sleek mb-2"
+                    />
                     <select
                       value={formData.clienteId}
                       onChange={(e) =>
@@ -560,17 +882,30 @@ export default function SolicitudesPage() {
                       required
                     >
                       <option value="">Seleccionar cliente</option>
-                      {clientes.map((c) => (
-                        <option key={c.idcliente} value={c.idcliente}>
-                          {c.appynom || "Cliente"}
-                        </option>
-                      ))}
+                      {clientes
+                        .filter((c) =>
+                          (c.appynom || "")
+                            .toLowerCase()
+                            .includes(clienteSearch.toLowerCase()),
+                        )
+                        .map((c) => (
+                          <option key={c.idcliente} value={c.idcliente}>
+                            {c.appynom || "Cliente"}
+                          </option>
+                        ))}
                     </select>
                   </div>
                   <div>
                     <label className="block text-sm font-semibold mb-1">
                       Vendedor *
                     </label>
+                    <input
+                      type="text"
+                      placeholder="Filtrar vendedor por nombre..."
+                      value={vendedorSearch}
+                      onChange={(e) => setVendedorSearch(e.target.value)}
+                      className="w-full input-sleek mb-2"
+                    />
                     <select
                       value={formData.vendedorId}
                       onChange={(e) =>
@@ -580,11 +915,17 @@ export default function SolicitudesPage() {
                       required
                     >
                       <option value="">Seleccionar vendedor</option>
-                      {vendedores.map((v) => (
-                        <option key={v.idvendedor} value={v.idvendedor}>
-                          {v.apellidonombre || "Vendedor"}
-                        </option>
-                      ))}
+                      {vendedores
+                        .filter((v) =>
+                          (v.apellidonombre || "")
+                            .toLowerCase()
+                            .includes(vendedorSearch.toLowerCase()),
+                        )
+                        .map((v) => (
+                          <option key={v.idvendedor} value={v.idvendedor}>
+                            {v.apellidonombre || "Vendedor"}
+                          </option>
+                        ))}
                     </select>
                   </div>
                   <div>
@@ -600,17 +941,11 @@ export default function SolicitudesPage() {
                       required
                     >
                       <option value="">Seleccionar producto</option>
-                      {productos
-                        .filter((p) =>
-                          ["Usado", "Moto", "0 Km"].includes(
-                            String(p.descripcion || ""),
-                          ),
-                        )
-                        .map((p) => (
-                          <option key={p.idproducto} value={p.idproducto}>
-                            {p.descripcion}
-                          </option>
-                        ))}
+                      {productos.map((p) => (
+                        <option key={p.idproducto} value={p.idproducto}>
+                          {p.descripcion}
+                        </option>
+                      ))}
                     </select>
                   </div>
                   <div>
@@ -689,7 +1024,11 @@ export default function SolicitudesPage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setShowModal(false)}
+                      onClick={() => {
+                        setShowModal(false);
+                        setClienteSearch("");
+                        setVendedorSearch("");
+                      }}
                       className="flex-1 ghost-button"
                     >
                       Cancelar
@@ -702,7 +1041,7 @@ export default function SolicitudesPage() {
           <div className="grid grid-cols-2 gap-4">
             <input
               type="text"
-              placeholder="Buscar por nro o cliente..."
+              placeholder="Buscar por cliente, DNI o solicitud..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="input-sleek"
@@ -758,7 +1097,7 @@ export default function SolicitudesPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {paginatedSolicitudes.map((solicitud) => (
+                    {solicitudes.map((solicitud) => (
                       <tr
                         key={solicitud.id}
                         className="border-b hover:bg-gray-50"
@@ -799,6 +1138,12 @@ export default function SolicitudesPage() {
                         </td>
                         <td className="px-6 py-4 text-sm text-center">
                           <button
+                            onClick={() => handlePlan(solicitud)}
+                            className="text-slate-600 hover:text-slate-800 mr-2"
+                          >
+                            Plan de pagos
+                          </button>
+                          <button
                             onClick={() => handleView(solicitud.id)}
                             className="text-blue-600 hover:text-blue-800 mr-2"
                           >
@@ -810,16 +1155,22 @@ export default function SolicitudesPage() {
                           >
                             Editar
                           </button>
+                          <Link
+                            to={`/admin?tab=audit&entity=solicitud&entity_id=${solicitud.id}`}
+                            className="text-slate-600 hover:text-slate-800"
+                          >
+                            Ver historial
+                          </Link>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-                {filteredSolicitudes.length === 0 && (
+                {solicitudes.length === 0 && (
                   <EmptyState message="No hay solicitudes para mostrar" />
                 )}
               </div>
-              {filteredSolicitudes.length > 0 && (
+              {Math.max(totalSolicitudes, solicitudes.length) > 0 && (
                 <div className="bg-white border-t p-4 flex items-center justify-between">
                   <select
                     value={rowsPerPage}
@@ -861,7 +1212,7 @@ export default function SolicitudesPage() {
                     </button>
                   </div>
                   <span className="text-sm text-gray-600">
-                    {filteredSolicitudes.length} registros
+                    {Math.max(totalSolicitudes, solicitudes.length)} registros
                   </span>
                 </div>
               )}

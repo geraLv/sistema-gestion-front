@@ -36,11 +36,20 @@ export default function ClientesPage() {
   const [submitting, setSubmitting] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(15);
+  const [totalClientes, setTotalClientes] = useState(0);
 
   useEffect(() => {
-    loadClientes();
     loadLocalidades();
   }, []);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setCurrentPage(1);
+      loadClientes(1, searchTerm);
+    }, 350);
+
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
 
   const loadLocalidades = async () => {
     try {
@@ -51,12 +60,20 @@ export default function ClientesPage() {
     }
   };
 
-  const loadClientes = async () => {
+  const loadClientes = async (
+    page = currentPage,
+    query = searchTerm,
+    pageSize = rowsPerPage,
+  ) => {
     try {
       setLoading(true);
       setError(null);
-      const response = (await clientesApi.getAll()) as any;
-      const mapped = (response || []).map((c: any) => ({
+      const response = await clientesApi.getPaged({
+        q: query.trim() || undefined,
+        page,
+        pageSize,
+      });
+      const mapped = (response.items || []).map((c: any) => ({
         id: c.idcliente,
         nombre: c.appynom || "",
         nroDocumento: c.dni || "",
@@ -64,6 +81,7 @@ export default function ClientesPage() {
         email: c.email,
       }));
       setClientes(mapped);
+      setTotalClientes(response.total || 0);
     } catch (err) {
       const errorMsg =
         err instanceof Error ? err.message : "Error al cargar clientes";
@@ -139,24 +157,21 @@ export default function ClientesPage() {
     }
   };
 
-  const filteredClientes = clientes.filter(
-    (cliente) =>
-      cliente.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cliente.nroDocumento.includes(searchTerm),
+  const totalPages = Math.ceil(
+    Math.max(totalClientes, clientes.length) / rowsPerPage,
   );
 
-  const totalPages = Math.ceil(filteredClientes.length / rowsPerPage);
-  const startIndex = (currentPage - 1) * rowsPerPage;
-  const endIndex = startIndex + rowsPerPage;
-  const paginatedClientes = filteredClientes.slice(startIndex, endIndex);
-
   const handlePageChange = (page: number) => {
-    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
+    const nextPage = Math.max(1, Math.min(page, totalPages || 1));
+    setCurrentPage(nextPage);
+    loadClientes(nextPage);
   };
 
   const handleRowsPerPageChange = (value: string) => {
-    setRowsPerPage(parseInt(value));
+    const next = parseInt(value);
+    setRowsPerPage(next);
     setCurrentPage(1);
+    loadClientes(1, searchTerm, next);
   };
 
   return (
@@ -344,7 +359,7 @@ export default function ClientesPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {paginatedClientes.map((cliente) => (
+                    {clientes.map((cliente) => (
                       <tr
                         key={cliente.id}
                         className="border-b hover:bg-gray-50"
@@ -377,11 +392,11 @@ export default function ClientesPage() {
                     ))}
                   </tbody>
                 </table>
-                {filteredClientes.length === 0 && (
+                {clientes.length === 0 && (
                   <EmptyState message="No hay clientes para mostrar" />
                 )}
               </div>
-              {filteredClientes.length > 0 && (
+              {Math.max(totalClientes, clientes.length) > 0 && (
                 <div className="bg-white border-t p-4 flex items-center justify-between">
                   <select
                     value={rowsPerPage}
@@ -423,7 +438,7 @@ export default function ClientesPage() {
                     </button>
                   </div>
                   <span className="text-sm text-gray-600">
-                    {filteredClientes.length} registros
+                    {Math.max(totalClientes, clientes.length)} registros
                   </span>
                 </div>
               )}

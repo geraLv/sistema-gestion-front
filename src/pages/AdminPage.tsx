@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import Layout from "../components/Layout";
 import { LoadingState } from "../components/Status";
 import { adminApi, auditApi, vendedoresAdminApi } from "../api/endpoints";
@@ -6,6 +7,7 @@ import { adminApi, auditApi, vendedoresAdminApi } from "../api/endpoints";
 type Tab = "users" | "audit" | "vendedores";
 
 export default function AdminPage() {
+  const location = useLocation();
   const [tab, setTab] = useState<Tab>("users");
   const [users, setUsers] = useState<any[]>([]);
   const [logs, setLogs] = useState<any[]>([]);
@@ -26,6 +28,7 @@ export default function AdminPage() {
 
   const [auditFilters, setAuditFilters] = useState({
     entity: "",
+    entity_id: "",
     action: "",
     actor: "",
     date_from: "",
@@ -51,9 +54,9 @@ export default function AdminPage() {
     setLoadingUsers(false);
   };
 
-  const loadLogs = async () => {
+  const loadLogs = async (filters = auditFilters) => {
     setLoadingLogs(true);
-    const data = await auditApi.getLogs(auditFilters);
+    const data = await auditApi.getLogs(filters);
     setLogs(data);
     setLoadingLogs(false);
   };
@@ -64,6 +67,25 @@ export default function AdminPage() {
     setVendedores(data);
     setLoadingVendedores(false);
   };
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tabParam = params.get("tab");
+    if (tabParam === "audit") {
+      const nextFilters = {
+        entity: params.get("entity") || "",
+        entity_id: params.get("entity_id") || "",
+        action: params.get("action") || "",
+        actor: params.get("actor") || "",
+        date_from: params.get("date_from") || "",
+        date_to: params.get("date_to") || "",
+        q: params.get("q") || "",
+      };
+      setTab("audit");
+      setAuditFilters(nextFilters);
+      loadLogs(nextFilters);
+    }
+  }, [location.search]);
 
   const handleCreateUser = async () => {
     await adminApi.createUser(newUser);
@@ -230,13 +252,24 @@ export default function AdminPage() {
 
         {tab === "audit" && (
           <div className="panel pad">
-            <div className="grid grid-cols-1 md:grid-cols-6 gap-3 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-7 gap-3 mb-4">
               <input
                 className="input-sleek"
                 placeholder="Entidad"
                 value={auditFilters.entity}
                 onChange={(e) =>
                   setAuditFilters({ ...auditFilters, entity: e.target.value })
+                }
+              />
+              <input
+                className="input-sleek"
+                placeholder="ID"
+                value={auditFilters.entity_id}
+                onChange={(e) =>
+                  setAuditFilters({
+                    ...auditFilters,
+                    entity_id: e.target.value,
+                  })
                 }
               />
               <input

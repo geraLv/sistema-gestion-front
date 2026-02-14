@@ -2,12 +2,15 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Layout from "../components/Layout";
 import { EmptyState, ErrorState, LoadingState } from "../components/Status";
-import { solicitudesApi, clientesApi, cuotasApi } from "../api/endpoints";
+import { dashboardApi } from "../api/endpoints";
 
 interface DashboardData {
   totalClientes: number;
   totalSolicitudes: number;
   totalCuotas: number;
+  cobradasHoy: number;
+  vencidasHoy: number;
+  vencidas30: number;
   solicitudesRecientes: Array<{
     id: number;
     nroSolicitud: string;
@@ -22,6 +25,9 @@ export default function DashboardPage() {
     totalClientes: 0,
     totalSolicitudes: 0,
     totalCuotas: 0,
+    cobradasHoy: 0,
+    vencidasHoy: 0,
+    vencidas30: 0,
     solicitudesRecientes: [],
   });
   const [loading, setLoading] = useState(true);
@@ -36,31 +42,23 @@ export default function DashboardPage() {
       setLoading(true);
       setError(null);
 
-      const [clientesRes, solicitudesRes, cuotasRes] = await Promise.all([
-        clientesApi.getAll(),
-        solicitudesApi.getAll(),
-        cuotasApi.getAll(),
-      ]);
-
-      const clientes = (clientesRes as unknown as any[]) || [];
-      const solicitudes = (solicitudesRes as unknown as any[]) || [];
-      const cuotas = (cuotasRes as unknown as any[]) || [];
-
-      // Mapear datos
-      const solicitudesMapped = solicitudes.slice(0, 10).map((s: any) => ({
-        id: s.idsolicitud,
-        nroSolicitud: s.nrosolicitud,
-        clienteNombre: s.cliente_nombre || s.appynom || "Desconocido",
-        importe: s.monto || s.totalapagar || 0,
-        estado:
-          s.estado === 0 ? "Impaga" : s.estado === 2 ? "Pagada" : "Pendiente",
-      }));
+      const summary = await dashboardApi.getSummary();
 
       setData({
-        totalClientes: clientes.length,
-        totalSolicitudes: solicitudes.length,
-        totalCuotas: cuotas.length,
-        solicitudesRecientes: solicitudesMapped,
+        totalClientes: summary?.totals?.clientes || 0,
+        totalSolicitudes: summary?.totals?.solicitudes || 0,
+        totalCuotas: summary?.totals?.cuotas || 0,
+        cobradasHoy: summary?.kpis?.cobradasHoy || 0,
+        vencidasHoy: summary?.kpis?.vencidasHoy || 0,
+        vencidas30: summary?.kpis?.vencidas30 || 0,
+        solicitudesRecientes: (summary?.recientes || []).map((s: any) => ({
+          id: s.id,
+          nroSolicitud: s.nroSolicitud,
+          clienteNombre: s.clienteNombre || "Desconocido",
+          importe: s.importe || 0,
+          estado:
+            s.estado === 0 ? "Impaga" : s.estado === 2 ? "Pagada" : "Pendiente",
+        })),
       });
     } catch (err) {
       console.error("Error:", err);
@@ -97,7 +95,7 @@ export default function DashboardPage() {
 
         {!error && (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-8">
               <div className="panel pad">
                 <p className="text-gray-600 text-sm mb-2">Total Clientes</p>
                 <p className="text-3xl font-bold text-blue-800">
@@ -114,6 +112,24 @@ export default function DashboardPage() {
                 <p className="text-gray-600 text-sm mb-2">Total Cuotas</p>
                 <p className="text-3xl font-bold text-blue-800">
                   {loading ? "-" : data.totalCuotas}
+                </p>
+              </div>
+              <div className="panel pad">
+                <p className="text-gray-600 text-sm mb-2">Cobradas Hoy</p>
+                <p className="text-3xl font-bold text-green-700">
+                  {loading ? "-" : data.cobradasHoy}
+                </p>
+              </div>
+              <div className="panel pad">
+                <p className="text-gray-600 text-sm mb-2">Vencidas Hoy</p>
+                <p className="text-3xl font-bold text-red-700">
+                  {loading ? "-" : data.vencidasHoy}
+                </p>
+              </div>
+              <div className="panel pad">
+                <p className="text-gray-600 text-sm mb-2">Vencidas +30d</p>
+                <p className="text-3xl font-bold text-red-900">
+                  {loading ? "-" : data.vencidas30}
                 </p>
               </div>
               <div className="panel pad">
