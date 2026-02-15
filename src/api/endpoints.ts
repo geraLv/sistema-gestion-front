@@ -83,6 +83,11 @@ export const clientesApi = {
     });
     return response.data.data;
   },
+
+  delete: async (id: number) => {
+    const response = await apiClient.delete<ApiResponse<any>>(`/clientes/${id}`);
+    return response.data;
+  },
 };
 
 // Localidades

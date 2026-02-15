@@ -1,447 +1,55 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Layout from "../components/Layout";
-import { EmptyState, ErrorState, LoadingState } from "../components/Status";
-import { clientesApi, localidadesApi } from "../api/endpoints";
-
-interface ClienteView {
-  id: number;
-  nombre: string;
-  nroDocumento: string;
-  telefono?: string;
-  email?: string;
-}
-
-interface Localidad {
-  id: number;
-  nombre: string;
-}
+import { ClientesList } from "../components/clientes/ClientesList";
+import { ClienteForm } from "../components/clientes/ClienteForm";
+import { Plus } from "lucide-react";
 
 export default function ClientesPage() {
-  const [clientes, setClientes] = useState<ClienteView[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [showModal, setShowModal] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [localidades, setLocalidades] = useState<Localidad[]>([]);
-  const [formData, setFormData] = useState({
-    nombre: "",
-    nroDocumento: "",
-    direccion: "",
-    telefono: "",
-    email: "",
-    localidadId: "",
-  });
-  const [formError, setFormError] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(15);
-  const [totalClientes, setTotalClientes] = useState(0);
+  const [viewMode, setViewMode] = useState<"list" | "create" | "edit">("list");
+  const [selectedId, setSelectedId] = useState<number | null>(null);
 
-  useEffect(() => {
-    loadLocalidades();
-  }, []);
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setCurrentPage(1);
-      loadClientes(1, searchTerm);
-    }, 350);
-
-    return () => clearTimeout(handler);
-  }, [searchTerm]);
-
-  const loadLocalidades = async () => {
-    try {
-      const data = (await localidadesApi.getAll()) as any;
-      setLocalidades(data || []);
-    } catch (err) {
-      console.error("Error cargando localidades:", err);
-    }
+  const handleCreate = () => {
+    setSelectedId(null);
+    setViewMode("create");
   };
 
-  const loadClientes = async (
-    page = currentPage,
-    query = searchTerm,
-    pageSize = rowsPerPage,
-  ) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await clientesApi.getPaged({
-        q: query.trim() || undefined,
-        page,
-        pageSize,
-      });
-      const mapped = (response.items || []).map((c: any) => ({
-        id: c.idcliente,
-        nombre: c.appynom || "",
-        nroDocumento: c.dni || "",
-        telefono: c.telefono,
-        email: c.email,
-      }));
-      setClientes(mapped);
-      setTotalClientes(response.total || 0);
-    } catch (err) {
-      const errorMsg =
-        err instanceof Error ? err.message : "Error al cargar clientes";
-      setError(errorMsg);
-    } finally {
-      setLoading(false);
-    }
+  const handleEdit = (id: number) => {
+    setSelectedId(id);
+    setViewMode("edit");
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormError("");
-
-    if (!formData.nombre || !formData.nroDocumento || !formData.localidadId) {
-      setFormError("Nombre, documento y localidad son requeridos");
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      const payload = {
-        appynom: formData.nombre,
-        dni: formData.nroDocumento,
-        direccion: formData.direccion,
-        telefono: formData.telefono,
-        email: formData.email,
-        selectLocalidades: parseInt(formData.localidadId, 10),
-      };
-
-      if (editingId) {
-        await clientesApi.update(editingId, payload as any);
-      } else {
-        await clientesApi.create(payload as any);
-      }
-      setShowModal(false);
-      setEditingId(null);
-      setFormData({
-        nombre: "",
-        nroDocumento: "",
-        direccion: "",
-        telefono: "",
-        email: "",
-        localidadId: "",
-      });
-      loadClientes();
-    } catch (err: any) {
-      const msg = err.response?.data?.error || "Error al crear cliente";
-      setFormError(msg);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleEdit = async (id: number) => {
-    try {
-      const data: any = await clientesApi.getById(id);
-      if (!data) {
-        setFormError("Cliente no encontrado");
-        return;
-      }
-      setEditingId(id);
-      setFormData({
-        nombre: data.appynom || "",
-        nroDocumento: data.dni || "",
-        direccion: data.direccion || "",
-        telefono: data.telefono || "",
-        email: data.email || "",
-        localidadId: String(data.relalocalidad || ""),
-      });
-      setShowModal(true);
-    } catch (err) {
-      setFormError("No se pudo cargar el cliente");
-    }
-  };
-
-  const totalPages = Math.ceil(
-    Math.max(totalClientes, clientes.length) / rowsPerPage,
-  );
-
-  const handlePageChange = (page: number) => {
-    const nextPage = Math.max(1, Math.min(page, totalPages || 1));
-    setCurrentPage(nextPage);
-    loadClientes(nextPage);
-  };
-
-  const handleRowsPerPageChange = (value: string) => {
-    const next = parseInt(value);
-    setRowsPerPage(next);
-    setCurrentPage(1);
-    loadClientes(1, searchTerm, next);
+  const handleSuccess = () => {
+    setViewMode("list");
+    setSelectedId(null);
   };
 
   return (
     <Layout>
-      <div className=" mx-auto px-6 py-18 page-shell">
-        <div className="panel pad mb-6 min-h-screen max-h-full">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-3xl font-bold">Clientes</h1>
-            <button
-              onClick={() => {
-                setEditingId(null);
-                setFormData({
-                  nombre: "",
-                  nroDocumento: "",
-                  direccion: "",
-                  telefono: "",
-                  email: "",
-                  localidadId: "",
-                });
-                setShowModal(true);
-              }}
-              className="action-button"
-            >
-              Agregar Cliente
+      <div className="container mx-auto px-4 py-8 page-shell">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold">Clientes</h1>
+          {viewMode === "list" && (
+            <button onClick={handleCreate} className="action-button flex items-center gap-2">
+              <Plus className="w-4 h-4" /> Nuevo Cliente
             </button>
-          </div>
-
-          {showModal && (
-            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-[2px] flex items-center justify-center z-50 ">
-              <div className="panel pad max-w-md w-full">
-                <h2 className="text-2xl font-bold mb-4">
-                  {editingId ? "Editar Cliente" : "Agregar Cliente"}
-                </h2>
-                {formError && (
-                  <div className="bg-red-100 text-red-700 p-3 rounded mb-4">
-                    {formError}
-                  </div>
-                )}
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-semibold mb-1">
-                      Nombre *
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.nombre}
-                      onChange={(e) =>
-                        setFormData({ ...formData, nombre: e.target.value })
-                      }
-                      className="w-full input-sleek"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold mb-1">
-                      Documento *
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.nroDocumento}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          nroDocumento: e.target.value,
-                        })
-                      }
-                      className="w-full input-sleek"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold mb-1">
-                      Localidad *
-                    </label>
-                    <select
-                      value={formData.localidadId}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          localidadId: e.target.value,
-                        })
-                      }
-                      className="w-full input-sleek"
-                      required
-                    >
-                      <option value="">Seleccionar localidad</option>
-                      {localidades.map((loc: any) => (
-                        <option key={loc.idlocalidad} value={loc.idlocalidad}>
-                          {loc.nombre}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold mb-1">
-                      Dirección
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.direccion}
-                      onChange={(e) =>
-                        setFormData({ ...formData, direccion: e.target.value })
-                      }
-                      className="w-full input-sleek"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold mb-1">
-                      Teléfono
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.telefono}
-                      onChange={(e) =>
-                        setFormData({ ...formData, telefono: e.target.value })
-                      }
-                      className="w-full input-sleek"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold mb-1">
-                      Email
-                    </label>
-                    <input
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) =>
-                        setFormData({ ...formData, email: e.target.value })
-                      }
-                      className="w-full input-sleek"
-                    />
-                  </div>
-                  <div className="flex gap-2 pt-4">
-                    <button
-                      type="submit"
-                      disabled={submitting}
-                      className="flex-1 action-button disabled:opacity-50"
-                    >
-                      {submitting ? "Guardando..." : "Guardar"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowModal(false)}
-                      className="flex-1 ghost-button"
-                    >
-                      Cancelar
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
           )}
-          <input
-            type="text"
-            placeholder="Buscar por nombre o documento..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full input-sleek"
-          />
+        </div>
 
-          {loading && <LoadingState />}
-          {error && <ErrorState message={error} />}
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 min-h-[500px]">
+          {viewMode === "list" && (
+            <ClientesList onEdit={handleEdit} />
+          )}
 
-          {!loading && !error && (
-            <div>
-              <div className="table-shell">
-                <table className="w-full">
-                  <thead className="table-head">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">
-                        Nombre
-                      </th>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">
-                        Documento
-                      </th>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">
-                        Teléfono
-                      </th>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">
-                        Email
-                      </th>
-                      <th className="px-6 py-3 text-center text-sm font-semibold text-gray-700">
-                        Acciones
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {clientes.map((cliente) => (
-                      <tr
-                        key={cliente.id}
-                        className="border-b hover:bg-gray-50"
-                      >
-                        <td className="px-6 py-4 text-sm">{cliente.nombre}</td>
-                        <td className="px-6 py-4 text-sm">
-                          {cliente.nroDocumento}
-                        </td>
-                        <td className="px-6 py-4 text-sm">
-                          {cliente.telefono || "-"}
-                        </td>
-                        <td className="px-6 py-4 text-sm">
-                          {cliente.email || "-"}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-center">
-                          <button
-                            onClick={() => handleEdit(cliente.id)}
-                            className="text-blue-600 hover:text-blue-800 mr-2"
-                          >
-                            Editar
-                          </button>
-                          <button
-                            onClick={() => {}}
-                            className="text-red-600 hover:text-red-800"
-                          >
-                            Eliminar
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {clientes.length === 0 && (
-                  <EmptyState message="No hay clientes para mostrar" />
-                )}
-              </div>
-              {Math.max(totalClientes, clientes.length) > 0 && (
-                <div className="bg-white border-t p-4 flex items-center justify-between">
-                  <select
-                    value={rowsPerPage}
-                    onChange={(e) => handleRowsPerPageChange(e.target.value)}
-                    className="input-sleek text-sm"
-                  >
-                    <option value="15">15 filas</option>
-                    <option value="50">50 filas</option>
-                    <option value="100">100 filas</option>
-                  </select>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => handlePageChange(currentPage - 1)}
-                      disabled={currentPage === 1}
-                      className="ghost-button disabled:opacity-50"
-                    >
-                      ←
-                    </button>
-                    <div className="flex items-center justify-around gap-2">
-                      <span className="text-sm">Página</span>
-                      <input
-                        type="number"
-                        value={currentPage}
-                        onChange={(e) =>
-                          handlePageChange(parseInt(e.target.value))
-                        }
-                        min="1"
-                        max={totalPages}
-                        className="w-18 input-sleek text-sm text-center"
-                      />
-                      <span className="text-sm">de {totalPages}</span>
-                    </div>
-                    <button
-                      onClick={() => handlePageChange(currentPage + 1)}
-                      disabled={currentPage >= totalPages}
-                      className="ghost-button disabled:opacity-50"
-                    >
-                      →
-                    </button>
-                  </div>
-                  <span className="text-sm text-gray-600">
-                    {Math.max(totalClientes, clientes.length)} registros
-                  </span>
-                </div>
-              )}
+          {(viewMode === "create" || viewMode === "edit") && (
+            <div className="max-w-2xl mx-auto">
+              <h2 className="text-xl font-semibold mb-6 pb-2 border-b border-slate-100">
+                {viewMode === "create" ? "Nuevo Cliente" : "Editar Cliente"}
+              </h2>
+              <ClienteForm
+                id={selectedId ?? undefined}
+                onSuccess={handleSuccess}
+                onCancel={() => setViewMode("list")}
+              />
             </div>
           )}
         </div>
