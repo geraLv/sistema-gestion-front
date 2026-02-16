@@ -261,6 +261,12 @@ export const cuotasApi = {
     const response = await apiClient.put(`/cuotas/${id}/importe`, { importe });
     return response.data.data || response.data;
   },
+
+  delete: async (id: number) => {
+    const response = await apiClient.delete(`/cuotas/${id}`);
+    return response.data;
+  },
+
   getComprobantes: async (idcuota: number) => {
     const response = await apiClient.get<ApiResponse<any[]>>(
       `/cuotas/${idcuota}/comprobantes`,

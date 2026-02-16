@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { type ColumnDef } from "@tanstack/react-table";
-import { Eye, DollarSign, Edit } from "lucide-react";
-import { useCuotas, usePagarMultiplesCuotas } from "../../hooks/useCuotas";
+import { Eye, DollarSign, Edit, Trash2 } from "lucide-react";
+import { useCuotas, useDeleteCuota, usePagarMultiplesCuotas } from "../../hooks/useCuotas";
+import { CuotaPayMultipleModal } from "./CuotaPayMultipleModal";
+import { cuotasApi, reportesApi } from "../../api/endpoints";
 import { DataTable } from "../ui/DataTable";
 import { FilterBar } from "../ui/FilterBar";
 import { ErrorState } from "../Status";
@@ -27,8 +29,6 @@ interface CuotasListProps {
     isModal?: boolean;
 }
 
-import { reportesApi } from "../../api/endpoints";
-
 export function CuotasList({ onView, onEdit, onPay, filtro, isModal }: CuotasListProps) {
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(isModal ? 100 : 15);
@@ -38,6 +38,8 @@ export function CuotasList({ onView, onEdit, onPay, filtro, isModal }: CuotasLis
 
     // Selection state
     const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
+    const [showPayMultipleModal, setShowPayMultipleModal] = useState(false);
+    const [cuotasToPay, setCuotasToPay] = useState<any[]>([]);
 
     const { data, isLoading, isError, error } = useCuotas(
         page,
@@ -48,25 +50,35 @@ export function CuotasList({ onView, onEdit, onPay, filtro, isModal }: CuotasLis
 
     const pagarMultiplesMutation = usePagarMultiplesCuotas();
 
-    const handlePagarSeleccionadas = async () => {
-        const selectedIds = Object.keys(rowSelection)
+    const handlePagarSeleccionadas = () => {
+        const selectedCuotas = Object.keys(rowSelection)
             .filter(key => rowSelection[key])
             .map(key => {
                 const index = Number(key);
                 return mappedData[index];
             })
-            .filter(item => item && item.estado !== 2 && item.id !== undefined)
-            .map(item => item.id);
+            .filter(item => item && item.estado !== 2);
 
-        if (selectedIds.length === 0) return;
-        if (!confirm(`¿Registrar pago de ${selectedIds.length} cuotas seleccionadas?`)) return;
+        if (selectedCuotas.length === 0) return;
 
-        try {
-            await pagarMultiplesMutation.mutateAsync(selectedIds);
-            setRowSelection({}); // Clear selection
-        } catch (e) {
-            alert("Error al realizar pagos masivos");
+        setCuotasToPay(selectedCuotas);
+        setShowPayMultipleModal(true);
+    };
+
+    const handleConfirmMultiplePayment = async (ids: number[], files: File[]) => {
+        // Pay all quotas
+        await pagarMultiplesMutation.mutateAsync(ids);
+
+        // Upload files to first quota if any
+        if (files.length > 0 && ids.length > 0) {
+            const firstQuotaId = ids[0];
+            for (const file of files) {
+                await cuotasApi.uploadComprobante(firstQuotaId, file);
+            }
         }
+
+        setRowSelection({}); // Clear selection
+        setShowPayMultipleModal(false);
     };
 
     const handlePrintSelected = async () => {
@@ -74,11 +86,15 @@ export function CuotasList({ onView, onEdit, onPay, filtro, isModal }: CuotasLis
             .filter(key => rowSelection[key])
             .map(key => {
                 const index = Number(key);
-                return mappedData[index]?.id;
+                return mappedData[index];
             })
-            .filter(id => id !== undefined);
+            .filter(item => item && item.estado === 2 && item.id !== undefined)
+            .map(item => item.id);
 
-        if (selectedIds.length === 0) return;
+        if (selectedIds.length === 0) {
+            alert("No hay cuotas pagadas seleccionadas para imprimir.");
+            return;
+        }
 
         setIsDownloading(true);
         try {
@@ -220,6 +236,43 @@ export function CuotasList({ onView, onEdit, onPay, filtro, isModal }: CuotasLis
                     </div>
                 );
             },
+        },
+        {
+            id: "delete",
+            header: "",
+            cell: (info) => {
+                const row = info.row.original;
+                const deleteMutation = useDeleteCuota();
+
+                // Only show delete button for unpaid quotas
+                // Backend will validate if it's the last one
+                if (row.estado === 2) return null;
+
+                const handleDelete = async () => {
+                    if (!confirm(`¿Eliminar cuota #${row.nroCuota}? Esta acción no se puede deshacer.`)) return;
+
+                    try {
+                        const result = await deleteMutation.mutateAsync(row.id);
+                        if (!result.success && result.error) {
+                            alert(result.error);
+                        }
+                    } catch (err: any) {
+                        const msg = err.response?.data?.error || err.message || "Error al eliminar cuota";
+                        alert(msg);
+                    }
+                };
+
+                return (
+                    <button
+                        onClick={handleDelete}
+                        disabled={deleteMutation.isPending}
+                        className="p-1.5 hover:bg-red-50 rounded text-red-600 transition-colors disabled:opacity-50"
+                        title="Eliminar Cuota"
+                    >
+                        <Trash2 className="w-4 h-4" />
+                    </button>
+                );
+            },
         }
     ];
 
@@ -236,7 +289,15 @@ export function CuotasList({ onView, onEdit, onPay, filtro, isModal }: CuotasLis
         raw: c
     }));
 
-    const selectedCount = Object.keys(rowSelection).filter(k => rowSelection[k]).length;
+    // Count only PAID quotas for printing
+    const selectedCount = Object.keys(rowSelection)
+        .filter(key => rowSelection[key])
+        .map(key => {
+            const index = Number(key);
+            return mappedData[index];
+        })
+        .filter(item => item && item.estado === 2)
+        .length;
 
     // Count only unpaid/payable items for the Pay button
     const selectedPagablesCount = Object.keys(rowSelection)
@@ -271,24 +332,26 @@ export function CuotasList({ onView, onEdit, onPay, filtro, isModal }: CuotasLis
                     </div>
 
                     <div className="flex justify-end items-center mb-6 md:mb-0 gap-2">
-                        {selectedCount > 0 && (
+                        {(selectedCount > 0 || selectedPagablesCount > 0) && (
                             <>
-                                <button
-                                    onClick={handlePrintSelected}
-                                    disabled={isDownloading}
-                                    className={cn(
-                                        "bg-slate-100 text-slate-700 border border-slate-300 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-200 transition-colors flex items-center gap-2 animate-in fade-in slide-in-from-right-4 w-full md:w-auto justify-center",
-                                        isDownloading && "opacity-50 cursor-not-allowed"
-                                    )}
-                                    title="Imprimir seleccionadas"
-                                >
-                                    {isDownloading ? (
-                                        <span className="animate-spin mr-2">⏳</span>
-                                    ) : (
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-printer"><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><path d="M6 9V3h12v6" /><rect x="6" y="14" width="12" height="8" ry="1" /></svg>
-                                    )}
-                                    Imprimir ({selectedCount})
-                                </button>
+                                {selectedCount > 0 && (
+                                    <button
+                                        onClick={handlePrintSelected}
+                                        disabled={isDownloading}
+                                        className={cn(
+                                            "bg-slate-100 text-slate-700 border border-slate-300 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-200 transition-colors flex items-center gap-2 animate-in fade-in slide-in-from-right-4 w-full md:w-auto justify-center",
+                                            isDownloading && "opacity-50 cursor-not-allowed"
+                                        )}
+                                        title="Imprimir seleccionadas"
+                                    >
+                                        {isDownloading ? (
+                                            <span className="animate-spin mr-2">⏳</span>
+                                        ) : (
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-printer"><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><path d="M6 9V3h12v6" /><rect x="6" y="14" width="12" height="8" ry="1" /></svg>
+                                        )}
+                                        Imprimir ({selectedCount})
+                                    </button>
+                                )}
                                 {selectedPagablesCount > 0 && (
                                     <button
                                         onClick={handlePagarSeleccionadas}
@@ -317,6 +380,14 @@ export function CuotasList({ onView, onEdit, onPay, filtro, isModal }: CuotasLis
                     setPageSize(newPagination.pageSize);
                 }}
             />
+
+            {showPayMultipleModal && (
+                <CuotaPayMultipleModal
+                    cuotas={cuotasToPay}
+                    onClose={() => setShowPayMultipleModal(false)}
+                    onConfirm={handleConfirmMultiplePayment}
+                />
+            )}
         </div>
     );
 }

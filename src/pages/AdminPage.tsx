@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import Layout from "../components/Layout";
 import { LoadingState } from "../components/Status";
+import { Modal } from "../components/ui/Modal";
 import { adminApi, auditApi, vendedoresAdminApi } from "../api/endpoints";
 
 type Tab = "users" | "audit" | "vendedores";
@@ -394,8 +395,8 @@ export default function AdminPage() {
                         <td className="px-4 py-3 text-sm">
                           <span
                             className={`chip ${v.estado === 1
-                                ? "bg-green-100 text-green-800"
-                                : "bg-red-100 text-red-800"
+                              ? "bg-green-100 text-green-800"
+                              : "bg-red-100 text-red-800"
                               }`}
                           >
                             {v.estado === 1 ? "Activo" : "Baja"}
@@ -427,8 +428,8 @@ export default function AdminPage() {
         )}
 
         {showCreate && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-[2px] flex items-center justify-center z-50">
-            <div className="panel pad max-w-md w-full">
+          <Modal isOpen={showCreate} onClose={() => setShowCreate(false)} className="max-w-md">
+            <div className="p-6">
               <h2 className="text-xl font-semibold mb-4">Crear usuario</h2>
               <div className="space-y-3">
                 <input
@@ -490,12 +491,12 @@ export default function AdminPage() {
                 </button>
               </div>
             </div>
-          </div>
+          </Modal>
         )}
 
         {showCreateVendedor && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-[2px] flex items-center justify-center z-50">
-            <div className="panel pad max-w-md w-full">
+          <Modal isOpen={showCreateVendedor} onClose={() => setShowCreateVendedor(false)} className="max-w-md">
+            <div className="p-6">
               <h2 className="text-xl font-semibold mb-4">Crear vendedor</h2>
               <div className="space-y-3">
                 <input
@@ -538,12 +539,12 @@ export default function AdminPage() {
                 </button>
               </div>
             </div>
-          </div>
+          </Modal>
         )}
 
         {editingVendedor && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-[2px] flex items-center justify-center z-50">
-            <div className="panel pad max-w-md w-full">
+          <Modal isOpen={!!editingVendedor} onClose={() => setEditingVendedor(null)} className="max-w-md">
+            <div className="p-6">
               <h2 className="text-xl font-semibold mb-4">Editar vendedor</h2>
               <div className="space-y-3">
                 <input
@@ -573,7 +574,7 @@ export default function AdminPage() {
                 </button>
               </div>
             </div>
-          </div>
+          </Modal>
         )}
       </div>
     </Layout>

@@ -88,8 +88,32 @@ export function SolicitudForm({ id, onSuccess, onCancel }: SolicitudFormProps) {
         const total = parseFloat(formData.totalapagar);
         const cuotas = parseInt(formData.cantidadCuotas as string);
 
+        if (isNaN(monto) || isNaN(total) || isNaN(cuotas)) {
+            setError("Los valores numéricos deben ser válidos");
+            return;
+        }
+
         if (monto < 0 || total < 0 || cuotas < 0) {
             setError("Los valores numéricos no pueden ser negativos");
+            return;
+        }
+
+        if (cuotas < 1) {
+            setError("La cantidad de cuotas debe ser al menos 1");
+            return;
+        }
+
+        // Consistency validation
+        const minTotalEsperado = monto * cuotas;
+        if (total < minTotalEsperado) {
+            setError(`El Total a Pagar ($${total.toFixed(2)}) no puede ser menor que el Monto Base × Cantidad de Cuotas ($${minTotalEsperado.toFixed(2)})`);
+            return;
+        }
+
+        // Warning if Total is significantly lower than expected (could indicate user error)
+        const valorCuotaCalculado = total / cuotas;
+        if (valorCuotaCalculado < monto * 0.95) {
+            setError(`Inconsistencia: Con ${cuotas} cuotas de $${monto.toFixed(2)}, el total debería ser al menos $${minTotalEsperado.toFixed(2)}, pero ingresaste $${total.toFixed(2)}`);
             return;
         }
 
@@ -113,7 +137,9 @@ export function SolicitudForm({ id, onSuccess, onCancel }: SolicitudFormProps) {
             }
             onSuccess();
         } catch (err: any) {
-            setError(err.message || "Error al guardar la solicitud");
+            console.error("Update/Create error:", err);
+            const msg = err.response?.data?.error || err.message || "Error al guardar la solicitud";
+            setError(msg);
         }
     };
 
@@ -181,7 +207,8 @@ export function SolicitudForm({ id, onSuccess, onCancel }: SolicitudFormProps) {
                         placeholder="Generado autom. si vacío"
                         value={formData.nroSolicitud}
                         onChange={e => setFormData({ ...formData, nroSolicitud: e.target.value })}
-                        disabled={!isEdit && formData.nroSolicitud === ""}
+                        disabled={isEdit}
+                        title={isEdit ? "No se puede modificar el número de solicitud." : ""}
                     />
                 </div>
 
@@ -194,6 +221,8 @@ export function SolicitudForm({ id, onSuccess, onCancel }: SolicitudFormProps) {
                         className="input-sleek w-full"
                         value={formData.cantidadCuotas}
                         onChange={e => setFormData({ ...formData, cantidadCuotas: e.target.value })}
+                        disabled={isEdit}
+                        title={isEdit ? "No se puede modificar la cantidad de cuotas. Usa 'Agregar Cuotas' desde el detalle." : ""}
                     />
                 </div>
 

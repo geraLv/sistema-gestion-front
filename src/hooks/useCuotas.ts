@@ -45,3 +45,15 @@ export const usePagarMultiplesCuotas = () => {
         },
     });
 };
+
+export const useDeleteCuota = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (id: number) => cuotasApi.delete(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["cuotas"] });
+            queryClient.invalidateQueries({ queryKey: ["cuota"] });
+            queryClient.invalidateQueries({ queryKey: ["solicitudes"] });
+        },
+    });
+};

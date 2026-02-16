@@ -15,12 +15,14 @@ import { authApi } from "./api/endpoints";
 import useAuthStore from "./stores/authStore";
 
 function App() {
-  const { usuario, setUsuario, logout, setIsLoading, setHasHydrated } =
+  const { setUsuario, logout, setIsLoading, setHasHydrated, hasHydrated } =
     useAuthStore();
 
   useEffect(() => {
+    // Only hydrate once on mount, not on every usuario change
+    if (hasHydrated) return;
+
     const hydrateUser = async () => {
-      if (usuario) return;
       try {
         setIsLoading(true);
         const response: any = await authApi.getCurrentUser();
@@ -38,7 +40,8 @@ function App() {
     };
 
     hydrateUser();
-  }, [usuario, setUsuario, logout, setIsLoading, setHasHydrated]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only once on mount
 
   return (
     <BrowserRouter>
