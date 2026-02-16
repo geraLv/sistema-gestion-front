@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 // import { useForm } from "react-hook-form"; // Todo: Integrate in future steps if requested
 import { useCreateSolicitud, useUpdateSolicitud, useSolicitud } from "../../hooks/useSolicitudes";
 import { clientesApi, productosApi, vendedoresApi } from "../../api/endpoints";
+import { SearchableSelect } from "../ui/SearchableSelect";
 
 interface SolicitudFormProps {
     id?: number; // If present, edit mode
@@ -29,7 +30,7 @@ export function SolicitudForm({ id, onSuccess, onCancel }: SolicitudFormProps) {
         totalapagar: "", // Precio final
         observaciones: "",
         nroSolicitud: "",
-        estado: 1, // 1 Activa, 0 Baja
+        estado: 1, // 1 Pendiente, 0 Anulada
     });
 
     const [error, setError] = useState<string | null>(null);
@@ -56,17 +57,18 @@ export function SolicitudForm({ id, onSuccess, onCancel }: SolicitudFormProps) {
     useEffect(() => {
         if (isEdit && solicitudData) {
             // Populate form
-            const data = solicitudData.data || solicitudData; // Adjust based on API structure
+            const data = solicitudData;
+            const raw = data as any; // Cast to access potential raw fields not in type
             setFormData({
-                clienteId: data.relacliente || "",
-                vendedorId: data.relavendedor || "",
-                productoId: data.relaproducto || data.idproducto || "",
-                cantidadCuotas: data.cantidadcuotas || "",
-                monto: data.monto || "",
-                totalapagar: data.totalapagar || "",
-                observaciones: data.observacion || "",
-                nroSolicitud: data.nrosolicitud || "",
-                estado: data.estado ?? 1,
+                clienteId: String(data.clienteId || data.cliente?.id || raw.relacliente || ""),
+                vendedorId: String(raw.vendedorId || raw.vendedor?.id || raw.relavendedor || ""),
+                productoId: String(data.productoId || data.producto?.id || raw.relaproducto || raw.idproducto || ""),
+                cantidadCuotas: String(data.cantidadCuotas || raw.cantidadcuotas || ""),
+                monto: String(data.importe || raw.monto || ""),
+                totalapagar: String(data.totalPagado && data.totalPagado > 0 ? (data.importe * data.cantidadCuotas) : (raw.totalapagar || "")),
+                observaciones: data.observaciones || raw.observacion || "",
+                nroSolicitud: data.nroSolicitud || raw.nrosolicitud || "",
+                estado: (data.estado === "Activa" || data.estado === "Pendiente" || raw.estado === 1) ? 1 : 0,
             });
         }
     }, [isEdit, solicitudData]);
@@ -81,13 +83,23 @@ export function SolicitudForm({ id, onSuccess, onCancel }: SolicitudFormProps) {
             return;
         }
 
+        // Numeric validation
+        const monto = parseFloat(formData.monto);
+        const total = parseFloat(formData.totalapagar);
+        const cuotas = parseInt(formData.cantidadCuotas as string);
+
+        if (monto < 0 || total < 0 || cuotas < 0) {
+            setError("Los valores numéricos no pueden ser negativos");
+            return;
+        }
+
         const payload = {
             selectCliente: parseInt(formData.clienteId),
             selectVendedor: parseInt(formData.vendedorId),
             idproducto: parseInt(formData.productoId),
-            monto: parseFloat(formData.monto),
-            selectCuotas: parseInt(formData.cantidadCuotas as string),
-            totalapagar: parseFloat(formData.totalapagar),
+            monto: monto,
+            selectCuotas: cuotas,
+            totalapagar: total,
             observacion: formData.observaciones,
             nroSolicitud: formData.nroSolicitud,
             selectEstado: formData.estado,
@@ -111,6 +123,9 @@ export function SolicitudForm({ id, onSuccess, onCancel }: SolicitudFormProps) {
         return <div className="p-8 text-center text-slate-500">Cargando datos...</div>;
     }
 
+    const clienteOptions = clientes.map(c => ({ value: c.idcliente, label: c.appynom }));
+    const vendedorOptions = vendedores.map(v => ({ value: v.idvendedor, label: v.apellidonombre }));
+
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
@@ -122,32 +137,24 @@ export function SolicitudForm({ id, onSuccess, onCancel }: SolicitudFormProps) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Cliente */}
                 <div>
-                    <label className="block text-sm font-semibold mb-1">Cliente *</label>
-                    <select
-                        className="input-sleek w-full"
+                    <SearchableSelect
+                        label="Cliente *"
+                        options={clienteOptions}
                         value={formData.clienteId}
-                        onChange={e => setFormData({ ...formData, clienteId: e.target.value })}
-                    >
-                        <option value="">Seleccione...</option>
-                        {clientes.map(c => (
-                            <option key={c.idcliente} value={c.idcliente}>{c.appynom}</option>
-                        ))}
-                    </select>
+                        onChange={(val) => setFormData({ ...formData, clienteId: String(val) })}
+                        placeholder="Buscar cliente..."
+                    />
                 </div>
 
                 {/* Vendedor */}
                 <div>
-                    <label className="block text-sm font-semibold mb-1">Vendedor *</label>
-                    <select
-                        className="input-sleek w-full"
+                    <SearchableSelect
+                        label="Vendedor *"
+                        options={vendedorOptions}
                         value={formData.vendedorId}
-                        onChange={e => setFormData({ ...formData, vendedorId: e.target.value })}
-                    >
-                        <option value="">Seleccione...</option>
-                        {vendedores.map(v => (
-                            <option key={v.idvendedor} value={v.idvendedor}>{v.apellidonombre}</option>
-                        ))}
-                    </select>
+                        onChange={(val) => setFormData({ ...formData, vendedorId: String(val) })}
+                        placeholder="Buscar vendedor..."
+                    />
                 </div>
 
                 {/* Producto */}
@@ -174,7 +181,7 @@ export function SolicitudForm({ id, onSuccess, onCancel }: SolicitudFormProps) {
                         placeholder="Generado autom. si vacío"
                         value={formData.nroSolicitud}
                         onChange={e => setFormData({ ...formData, nroSolicitud: e.target.value })}
-                        disabled={!isEdit && formData.nroSolicitud === ""} // Optional: disable on create if auto-generated
+                        disabled={!isEdit && formData.nroSolicitud === ""}
                     />
                 </div>
 
@@ -183,6 +190,7 @@ export function SolicitudForm({ id, onSuccess, onCancel }: SolicitudFormProps) {
                     <label className="block text-sm font-semibold mb-1">Cant. Cuotas *</label>
                     <input
                         type="number"
+                        min="1"
                         className="input-sleek w-full"
                         value={formData.cantidadCuotas}
                         onChange={e => setFormData({ ...formData, cantidadCuotas: e.target.value })}
@@ -194,6 +202,8 @@ export function SolicitudForm({ id, onSuccess, onCancel }: SolicitudFormProps) {
                     <label className="block text-sm font-semibold mb-1">Monto Base *</label>
                     <input
                         type="number"
+                        min="0"
+                        step="0.01"
                         className="input-sleek w-full"
                         value={formData.monto}
                         onChange={e => setFormData({ ...formData, monto: e.target.value })}
@@ -205,6 +215,8 @@ export function SolicitudForm({ id, onSuccess, onCancel }: SolicitudFormProps) {
                     <label className="block text-sm font-semibold mb-1">Total a Pagar *</label>
                     <input
                         type="number"
+                        min="0"
+                        step="0.01"
                         className="input-sleek w-full"
                         value={formData.totalapagar}
                         onChange={e => setFormData({ ...formData, totalapagar: e.target.value })}
@@ -220,8 +232,8 @@ export function SolicitudForm({ id, onSuccess, onCancel }: SolicitudFormProps) {
                             value={formData.estado}
                             onChange={e => setFormData({ ...formData, estado: Number(e.target.value) })}
                         >
-                            <option value={1}>Activa</option>
-                            <option value={0}>Baja / Inactiva</option>
+                            <option value={1}>Pendiente</option>
+                            <option value={0}>Anulada</option>
                         </select>
                     </div>
                 )}

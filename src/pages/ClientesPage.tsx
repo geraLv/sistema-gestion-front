@@ -2,7 +2,6 @@ import { useState } from "react";
 import Layout from "../components/Layout";
 import { ClientesList } from "../components/clientes/ClientesList";
 import { ClienteForm } from "../components/clientes/ClienteForm";
-import { Plus } from "lucide-react";
 
 export default function ClientesPage() {
   const [viewMode, setViewMode] = useState<"list" | "create" | "edit">("list");
@@ -28,16 +27,11 @@ export default function ClientesPage() {
       <div className="container mx-auto px-4 py-8 page-shell">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold">Clientes</h1>
-          {viewMode === "list" && (
-            <button onClick={handleCreate} className="action-button flex items-center gap-2">
-              <Plus className="w-4 h-4" /> Nuevo Cliente
-            </button>
-          )}
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 min-h-[500px]">
           {viewMode === "list" && (
-            <ClientesList onEdit={handleEdit} />
+            <ClientesList onEdit={handleEdit} onCreate={handleCreate} />
           )}
 
           {(viewMode === "create" || viewMode === "edit") && (

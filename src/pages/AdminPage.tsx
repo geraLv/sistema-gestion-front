@@ -307,7 +307,7 @@ export default function AdminPage() {
                   setAuditFilters({ ...auditFilters, date_to: e.target.value })
                 }
               />
-              <button className="action-button" onClick={loadLogs}>
+              <button className="action-button" onClick={() => loadLogs()}>
                 Filtrar
               </button>
             </div>
@@ -393,11 +393,10 @@ export default function AdminPage() {
                         </td>
                         <td className="px-4 py-3 text-sm">
                           <span
-                            className={`chip ${
-                              v.estado === 1
+                            className={`chip ${v.estado === 1
                                 ? "bg-green-100 text-green-800"
                                 : "bg-red-100 text-red-800"
-                            }`}
+                              }`}
                           >
                             {v.estado === 1 ? "Activo" : "Baja"}
                           </span>

@@ -26,8 +26,8 @@ export default function CuotasPage() {
       const data = await cuotasApi.getById(id);
       setViewCuota(data);
 
-      if (data?.relasolicitud) {
-        const solId = Number(data.relasolicitud);
+      if (data?.solicitudId) {
+        const solId = Number(data.solicitudId);
         try {
           const sol = await solicitudesApi.getById(solId);
           setViewSolicitud(sol);
@@ -70,18 +70,25 @@ export default function CuotasPage() {
   };
 
   const handleSaveEdit = async (id: number, importe: number) => {
-    await cuotasApi.update(id, { importe });
-    queryClient.invalidateQueries({ queryKey: ["cuotas"] });
+    try {
+      await cuotasApi.updateImporte(id, importe);
+      setEditCuota(null);
+      queryClient.invalidateQueries({ queryKey: ["cuotas"] });
+    } catch (e) {
+      alert("Error al actualizar");
+    }
   };
 
-  const handleConfirmPay = async (id: number, file: File | null) => {
-    await cuotasApi.pagar(id);
-    if (file) {
-      const formData = new FormData();
-      formData.append("archivo", file);
-      await cuotasApi.subirComprobante(id, formData);
+  const handleConfirmPayCuota = async (id: number, file: File | null) => {
+    try {
+      await cuotasApi.pagar(id);
+      if (file) {
+        await cuotasApi.uploadComprobante(id, file); // Fixed method name assumption which was subirComprobante
+      }
+      queryClient.invalidateQueries({ queryKey: ["cuotas"] });
+    } catch (e) {
+      alert("Error al pagar o subir comprobante");
     }
-    queryClient.invalidateQueries({ queryKey: ["cuotas"] });
   };
 
   return (
@@ -125,7 +132,7 @@ export default function CuotasPage() {
           <CuotaPayModal
             cuota={payCuota}
             onClose={() => setPayCuota(null)}
-            onConfirm={handleConfirmPay}
+            onConfirm={handleConfirmPayCuota}
           />
         )}
       </div>

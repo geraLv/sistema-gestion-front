@@ -27,6 +27,12 @@ export interface Cliente {
   localidadId: number;
   localidad?: Localidad;
   estado: number;
+
+  // Raw DB fields
+  appynom?: string;
+  dni?: string;
+  relalocalidad?: number;
+  condicion?: number;
 }
 
 export interface Localidad {
@@ -75,6 +81,11 @@ export interface Cuota {
   estado: string; // "Impaga", "Pagada", "Pendiente"
   fechaPago?: string;
   saldoAnterior?: number;
+  // Raw DB fields
+  idcuota?: number;
+  relasolicitud?: number;
+  fecha?: string;
+  [key: string]: any;
 }
 
 export interface Adelanto {

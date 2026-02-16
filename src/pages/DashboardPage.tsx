@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Layout from "../components/Layout";
-import { EmptyState, ErrorState, LoadingState } from "../components/Status";
+import { ErrorState, LoadingState } from "../components/Status";
 import { dashboardApi } from "../api/endpoints";
 import {
   Users,
@@ -13,8 +13,6 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 import {
-  BarChart,
-  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -200,7 +198,7 @@ export default function DashboardPage() {
                         <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value}`} />
                         <Tooltip
                           contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                          formatter={(value: number) => [`$${value.toLocaleString()}`, "Ingresos"]}
+                          formatter={(value: number | undefined) => [`$${(value || 0).toLocaleString()}`, "Ingresos"] as [string, string]}
                         />
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                         <Area type="monotone" dataKey="total" stroke="#8b5cf6" strokeWidth={3} fillOpacity={1} fill="url(#colorTotal)" />

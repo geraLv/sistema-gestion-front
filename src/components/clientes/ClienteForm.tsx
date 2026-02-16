@@ -16,6 +16,7 @@ export function ClienteForm({ id, onSuccess, onCancel }: ClienteFormProps) {
         telefono: "",
         email: "",
         localidadId: "",
+        estado: "1",
     });
     const [formError, setFormError] = useState("");
     const [localidades, setLocalidades] = useState<any[]>([]);
@@ -33,12 +34,13 @@ export function ClienteForm({ id, onSuccess, onCancel }: ClienteFormProps) {
     useEffect(() => {
         if (clienteData && id) {
             setFormData({
-                nombre: clienteData.appynom || "",
-                nroDocumento: clienteData.dni || "",
+                nombre: clienteData.appynom || clienteData.nombre || "",
+                nroDocumento: clienteData.dni || clienteData.nroDocumento || "",
                 direccion: clienteData.direccion || "",
                 telefono: clienteData.telefono || "",
                 email: clienteData.email || "",
-                localidadId: String(clienteData.relalocalidad || ""),
+                localidadId: String(clienteData.relalocalidad || clienteData.localidadId || ""),
+                estado: String(clienteData.condicion || clienteData.estado || 1),
             });
         }
     }, [clienteData, id]);
@@ -49,6 +51,13 @@ export function ClienteForm({ id, onSuccess, onCancel }: ClienteFormProps) {
             setLocalidades(data || []);
         } catch (err) {
             console.error("Error cargando localidades:", err);
+        }
+    };
+
+    const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value;
+        if (/^\d*$/.test(val)) {
+            setFormData({ ...formData, telefono: val });
         }
     };
 
@@ -68,6 +77,7 @@ export function ClienteForm({ id, onSuccess, onCancel }: ClienteFormProps) {
             telefono: formData.telefono,
             email: formData.email,
             selectLocalidades: parseInt(formData.localidadId, 10),
+            condicion: parseInt(formData.estado, 10),
         };
 
         try {
@@ -164,10 +174,9 @@ export function ClienteForm({ id, onSuccess, onCancel }: ClienteFormProps) {
                 <input
                     type="text"
                     value={formData.telefono}
-                    onChange={(e) =>
-                        setFormData({ ...formData, telefono: e.target.value })
-                    }
+                    onChange={handlePhoneChange}
                     className="w-full input-sleek"
+                    placeholder="Solo números"
                 />
             </div>
             <div>

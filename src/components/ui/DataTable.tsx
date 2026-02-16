@@ -9,7 +9,7 @@ import {
     type VisibilityState,
 } from "@tanstack/react-table"
 import { useState } from "react"
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react"
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react"
 
 interface DataTableProps<TData, TValue> {
     columns: ColumnDef<TData, TValue>[]
@@ -21,6 +21,8 @@ interface DataTableProps<TData, TValue> {
     }
     onPaginationChange?: (pagination: { pageIndex: number; pageSize: number }) => void
     isLoading?: boolean
+    rowSelection?: Record<string, boolean>;
+    onRowSelectionChange?: (selection: Record<string, boolean>) => void;
 }
 
 export function DataTable<TData, TValue>({
@@ -30,10 +32,17 @@ export function DataTable<TData, TValue>({
     pagination,
     onPaginationChange,
     isLoading = false,
+    rowSelection: controlledRowSelection,
+    onRowSelectionChange: controlledOnRowSelectionChange,
 }: DataTableProps<TData, TValue>) {
     const [sorting, setSorting] = useState<SortingState>([])
-    const [rowSelection, setRowSelection] = useState({})
+    const [internalRowSelection, setInternalRowSelection] = useState({})
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
+
+    // Determine if row selection is controlled
+    const isRowSelectionControlled = controlledRowSelection !== undefined;
+    const rowSelection = isRowSelectionControlled ? controlledRowSelection : internalRowSelection;
+    const onRowSelectionChange = isRowSelectionControlled ? controlledOnRowSelectionChange : setInternalRowSelection;
 
     // If pagination is controlled, us passing it to table options
     // If not, we let the table handle it (client-side)
@@ -46,7 +55,17 @@ export function DataTable<TData, TValue>({
         getPaginationRowModel: getPaginationRowModel(),
         onSortingChange: setSorting,
         getSortedRowModel: getSortedRowModel(),
-        onRowSelectionChange: setRowSelection,
+        onRowSelectionChange: (updaterOrValue) => {
+            // Handle both function updater and direct value
+            if (onRowSelectionChange) {
+                if (typeof updaterOrValue === 'function') {
+                    const newValue = updaterOrValue(rowSelection as Record<string, boolean>);
+                    onRowSelectionChange(newValue);
+                } else {
+                    onRowSelectionChange(updaterOrValue);
+                }
+            }
+        },
         onColumnVisibilityChange: setColumnVisibility,
         state: {
             sorting,
@@ -66,6 +85,7 @@ export function DataTable<TData, TValue>({
                 }
             }
             : undefined,
+        enableRowSelection: true, // Enable row selection
     })
 
     return (

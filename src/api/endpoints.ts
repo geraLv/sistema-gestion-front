@@ -526,6 +526,15 @@ export const reportesApi = {
     });
     return response.data as Blob;
   },
+
+  recibosMultiples: async (idcuotas: number[]) => {
+    const response = await apiClient.post(
+      "/reportes/recibos/multiples",
+      { idcuotas },
+      { responseType: "blob" },
+    );
+    return response.data as Blob;
+  },
 };
 
 export const dashboardApi = {

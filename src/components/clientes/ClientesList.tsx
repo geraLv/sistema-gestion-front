@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { type ColumnDef } from "@tanstack/react-table";
-import { Edit, Trash2 } from "lucide-react";
+import { Edit, Trash2, Plus } from "lucide-react";
 import { useClientes, useDeleteCliente } from "../../hooks/useClientes";
 import { DataTable } from "../ui/DataTable";
 import { FilterBar } from "../ui/FilterBar";
@@ -17,9 +17,10 @@ export type ClienteColumn = {
 
 interface ClientesListProps {
     onEdit: (id: number) => void;
+    onCreate: () => void;
 }
 
-export function ClientesList({ onEdit }: ClientesListProps) {
+export function ClientesList({ onEdit, onCreate }: ClientesListProps) {
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(15);
     const [searchTerm, setSearchTerm] = useState("");
@@ -108,12 +109,20 @@ export function ClientesList({ onEdit }: ClientesListProps) {
 
     return (
         <div className="h-full">
-            <div className="flex w-full mb-6 justify-center">
-                <div className="flex w-11/12 justify-start">
-                    <FilterBar
-                        onSearch={setSearchTerm}
-                        placeholder="Buscar por nombre, DNI..."
-                    />
+            <div className="flex w-11/12 justify-center items-center mb-6 mx-auto">
+                <div className="flex flex-col md:flex-row w-full justify-between items-center gap-4">
+                    <div className="w-full md:flex-1">
+                        <FilterBar
+                            onSearch={setSearchTerm}
+                            placeholder="Buscar por nombre, DNI..."
+                            initialSearch={searchTerm}
+                        />
+                    </div>
+                    <div className="flex justify-end items-center mb-6 md:mb-0">
+                        <button onClick={onCreate} className="action-button h-10 w-full md:w-auto flex items-center justify-center gap-2">
+                            <Plus className="w-4 h-4" /> <span className="whitespace-nowrap">Nuevo Cliente</span>
+                        </button>
+                    </div>
                 </div>
             </div>
 

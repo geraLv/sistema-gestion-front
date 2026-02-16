@@ -1,6 +1,5 @@
-import { Search, Filter, X } from "lucide-react";
+import { X } from "lucide-react";
 import { useState, useEffect } from "react";
-import { cn } from "../../lib/utils";
 
 interface FilterOption {
     value: string;
@@ -40,12 +39,12 @@ export function FilterBar({
     };
 
     return (
-        <div className="flex justify-center items-center h-20 w-full sm:flex-row mb-6">
-            <div className="flex flex-row w-8/12">
-                <div className="relative flex-1 ">
+        <div className="flex flex-col md:flex-row justify-center items-center w-full mb-6 gap-4">
+            <div className="flex flex-col md:flex-row w-full md:w-10/12 gap-4">
+                <div className="relative flex-1 w-full">
                     <input
                         type="text"
-                        className="w-11/12 h-10 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all"
+                        className="w-full h-10 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all pl-4"
                         placeholder={placeholder}
                         value={searchValue}
                         onChange={(e) => setSearchValue(e.target.value)}
@@ -62,10 +61,10 @@ export function FilterBar({
                 </div>
 
                 {filters.length > 0 && onFilterChange && (
-                    <div className="sm:w-1/5 h-10">
+                    <div className="w-full md:w-1/4 h-10">
                         <div className="relative h-full ">
                             <select
-                                className="w-full h-full border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 bg-white"
+                                className="w-full h-full border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 bg-white px-3"
                                 value={filterValue}
                                 onChange={(e) => {
                                     setFilterValue(e.target.value);

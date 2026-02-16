@@ -4,17 +4,19 @@ import { Edit, Eye, FileText, Plus } from "lucide-react";
 import { useSolicitudes } from "../../hooks/useSolicitudes";
 import { DataTable } from "../ui/DataTable";
 import { FilterBar } from "../ui/FilterBar";
-import { LoadingState, ErrorState } from "../Status";
+import { ErrorState } from "../Status";
 
 export type SolicitudColumn = {
     id: number;
-    nroSolicitud: string;
+    nrosolicitud: string;
     clienteNombre: string;
     clienteDni: string;
     productoNombre: string;
-    importe: number;
+    importe: number; // Monto Solicitado
+    totalAPagar: number; // Total Financiado
     cantidadCuotas: number;
     totalPagado: number;
+    porcentajePagado: number;
     estado: string;
 };
 
@@ -26,7 +28,7 @@ interface SolicitudesListProps {
     onAddCuotas: (solicitud: SolicitudColumn) => void;
 }
 
-export function SolicitudesList({ onCreate, onEdit, onView, onViewPlan, onAddCuotas }: SolicitudesListProps) {
+export function SolicitudesList({ onCreate, onEdit, onView, onViewPlan }: SolicitudesListProps) {
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(15);
     const [searchTerm, setSearchTerm] = useState("");
@@ -41,7 +43,7 @@ export function SolicitudesList({ onCreate, onEdit, onView, onViewPlan, onAddCuo
 
     const columns: ColumnDef<SolicitudColumn>[] = [
         {
-            accessorKey: "nroSolicitud",
+            accessorKey: "nrosolicitud",
             header: "Nro",
             cell: (info) => <span className="font-mono font-medium">{info.getValue() as string}</span>,
         },
@@ -61,10 +63,18 @@ export function SolicitudesList({ onCreate, onEdit, onView, onViewPlan, onAddCuo
         },
         {
             accessorKey: "importe",
-            header: "Importe",
+            header: "Monto",
             cell: (info) => {
                 const val = info.getValue() as number;
                 return <span>${val.toLocaleString("es-AR", { minimumFractionDigits: 2 })}</span>;
+            },
+        },
+        {
+            accessorKey: "totalAPagar",
+            header: "Total a Pagar",
+            cell: (info) => {
+                const val = info.getValue() as number;
+                return <span className="font-semibold">${val.toLocaleString("es-AR", { minimumFractionDigits: 2 })}</span>;
             },
         },
         {
@@ -77,8 +87,9 @@ export function SolicitudesList({ onCreate, onEdit, onView, onViewPlan, onAddCuo
             header: "Pagado",
             cell: (info) => {
                 const pagado = info.getValue() as number;
-                const total = info.row.original.importe;
-                const porcentaje = Math.min(100, (pagado / total) * 100);
+                // Use DB value for percentage if available, fallback to calc
+                const porcentaje = info.row.original.porcentajePagado ?? 0;
+
                 return (
                     <div className="w-full max-w-[120px]">
                         <div className="flex justify-between text-xs mb-1">
@@ -151,13 +162,15 @@ export function SolicitudesList({ onCreate, onEdit, onView, onViewPlan, onAddCuo
         const producto = Array.isArray(s.producto) && s.producto.length > 0 ? s.producto[0] : s.producto;
         return {
             id: s.idsolicitud,
-            nroSolicitud: s.nrosolicitud,
+            nrosolicitud: s.nrosolicitud,
             clienteNombre: s.cliente?.cliente_nombre || s.cliente?.appynom || "Desconocido",
             clienteDni: s.cliente?.dni || s.dni || "",
             productoNombre: producto?.descripcion || s.producto_descripcion || s.prdescripcion || "",
-            importe: s.monto || s.totalapagar || 0,
+            importe: s.monto || 0, // Now strictly Monto
+            totalAPagar: s.totalapagar || 0, // New field from DB
             cantidadCuotas: s.cantidadcuotas,
             totalPagado: s.totalabonado || s.total_pagado || 0,
+            porcentajePagado: s.porcentajepagado || 0,
             estado: s.estado === 0 ? "Impaga" : s.estado === 2 ? "Pagada" : "Pendiente",
         };
     });
@@ -167,21 +180,23 @@ export function SolicitudesList({ onCreate, onEdit, onView, onViewPlan, onAddCuo
     return (
         <div>
             <div className="flex w-11/12 justify-center items-center mb-6">
-                <div className="flex w-full justify-around items-center">
-                    <FilterBar
-                        onSearch={setSearchTerm}
-                        onFilterChange={setStatusFilter}
-                        filters={[
-                            { value: "Pagada", label: "Pagada" },
-                            { value: "Impaga", label: "Impaga" },
-                            { value: "Pendiente", label: "Pendiente" },
-                        ]}
-                        placeholder="Buscar por cliente, DNI o Nro Solicitud..."
-                    />
+                <div className="flex flex-col md:flex-row w-full justify-between items-center gap-4">
+                    <div className="w-full md:flex-1">
+                        <FilterBar
+                            onSearch={setSearchTerm}
+                            onFilterChange={setStatusFilter}
+                            filters={[
+                                { value: "Pagada", label: "Pagada" },
+                                { value: "Impaga", label: "Impaga" },
+                                { value: "Pendiente", label: "Pendiente" },
+                            ]}
+                            placeholder="Buscar por cliente, DNI o Nro Solicitud..."
+                        />
+                    </div>
 
-                    <div className="flex justify-end items-center  mb-6">
-                        <button onClick={onCreate} className="action-button h-15 flex items-center gap-2">
-                            <Plus className="w-4 h-4" /> Nueva Solicitud
+                    <div className="flex justify-end items-center mb-6 md:mb-0">
+                        <button onClick={onCreate} className="action-button h-10 w-full md:w-auto flex items-center justify-center gap-2">
+                            <Plus className="w-4 h-4" /> <span className="whitespace-nowrap">Nueva Solicitud</span>
                         </button>
                     </div>
                 </div>
@@ -191,7 +206,7 @@ export function SolicitudesList({ onCreate, onEdit, onView, onViewPlan, onAddCuo
                 columns={columns}
                 data={mappedData}
                 isLoading={isLoading}
-                pageCount={data?.totalPages || -1}
+                pageCount={Math.ceil((data?.total || 0) / pageSize)}
                 pagination={{ pageIndex: page - 1, pageSize }}
                 onPaginationChange={(newPagination) => {
                     setPage(newPagination.pageIndex + 1);

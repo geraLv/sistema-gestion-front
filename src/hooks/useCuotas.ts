@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
-import { cuotasApi, reportesApi } from "../api/endpoints";
+import { cuotasApi } from "../api/endpoints";
 
 export const useCuotas = (
     page: number = 1,
