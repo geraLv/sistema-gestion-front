@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { type ColumnDef } from "@tanstack/react-table";
 import { Eye, DollarSign, Edit, Trash2 } from "lucide-react";
 import { useCuotas, useDeleteCuota, usePagarMultiplesCuotas } from "../../hooks/useCuotas";
@@ -25,11 +26,12 @@ interface CuotasListProps {
     onView?: (id: number) => void;
     onEdit?: (cuota: any) => void;
     onPay?: (cuota: any) => void;
-    filtro?: string; // Solicitud ID to filter
+    filtro?: string; // Solicitud ID to filter (used in general list)
+    idsolicitud?: number; // When provided in modal mode, use dedicated endpoint
     isModal?: boolean;
 }
 
-export function CuotasList({ onView, onEdit, onPay, filtro, isModal }: CuotasListProps) {
+export function CuotasList({ onView, onEdit, onPay, filtro, idsolicitud, isModal }: CuotasListProps) {
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(isModal ? 100 : 15);
     const [searchTerm, setSearchTerm] = useState(filtro || "");
@@ -41,12 +43,28 @@ export function CuotasList({ onView, onEdit, onPay, filtro, isModal }: CuotasLis
     const [showPayMultipleModal, setShowPayMultipleModal] = useState(false);
     const [cuotasToPay, setCuotasToPay] = useState<any[]>([]);
 
-    const { data, isLoading, isError, error } = useCuotas(
+    // When in modal mode with a specific solicitud, use the dedicated endpoint
+    const solicitudQuery = useQuery({
+        queryKey: ["cuotas", "solicitud", idsolicitud],
+        queryFn: async () => {
+            const result = await cuotasApi.getForSolicitud(idsolicitud!);
+            // Normalize to same shape as getPaged
+            const cuotas = result.cuotas || [];
+            return { items: cuotas, total: cuotas.length };
+        },
+        enabled: !!idsolicitud && isModal,
+    });
+
+    const generalQuery = useCuotas(
         page,
         pageSize,
-        searchTerm, // This handles the "filtro" if passed as search term
+        searchTerm,
         estadoFilter
     );
+
+    const { data, isLoading, isError, error } = idsolicitud && isModal
+        ? solicitudQuery
+        : generalQuery;
 
     const pagarMultiplesMutation = usePagarMultiplesCuotas();
 

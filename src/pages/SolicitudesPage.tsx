@@ -4,6 +4,7 @@ import Layout from "../components/Layout";
 import { SolicitudesList, type SolicitudColumn } from "../components/solicitudes/SolicitudesList";
 import { SolicitudForm } from "../components/solicitudes/SolicitudForm";
 import { SolicitudAddCuotasModal } from "../components/solicitudes/SolicitudAddCuotasModal";
+import { SolicitudFechaModal } from "../components/solicitudes/SolicitudFechaModal";
 import { cuotasApi, solicitudesApi, reportesApi } from "../api/endpoints";
 import { Modal } from "../components/ui/Modal";
 import { useAddCuotas } from "../hooks/useSolicitudes";
@@ -11,6 +12,7 @@ import { CuotaDetailModal } from "../components/cuotas/CuotaDetailModal";
 import { CuotaEditModal } from "../components/cuotas/CuotaEditModal";
 import { CuotaPayModal } from "../components/cuotas/CuotaPayModal";
 import { CuotasList } from "../components/cuotas/CuotasList";
+import { CalendarDays } from "lucide-react";
 
 export default function SolicitudesPage() {
   const [viewMode, setViewMode] = useState<"list" | "create" | "edit">("list");
@@ -26,6 +28,9 @@ export default function SolicitudesPage() {
 
   // Add Cuotas Modal state
   const [addCuotasSol, setAddCuotasSol] = useState<{ id: number, nroSolicitud: string } | null>(null);
+
+  // Edit Fecha Modal state
+  const [editFechaSol, setEditFechaSol] = useState<{ id: number, nroSolicitud: string, fechaActual?: string } | null>(null);
 
   // Cuota Actions State (similar to CuotasPage)
   const [viewCuota, setViewCuota] = useState<any | null>(null);
@@ -93,6 +98,23 @@ export default function SolicitudesPage() {
   const handleConfirmAddCuotas = async (cantidad: number) => {
     if (!addCuotasSol) return;
     await addCuotasMutation.mutateAsync({ id: addCuotasSol.id, cantidad });
+    if (viewData) handleViewPlan(viewData.idsolicitud || viewData.id);
+  };
+
+  const handleOpenEditFecha = () => {
+    if (!viewData) return;
+    setEditFechaSol({
+      id: viewData.idsolicitud || viewData.id,
+      nroSolicitud: viewData.nrosolicitud,
+      fechaActual: viewData.fechalta,
+    });
+  };
+
+  const handleConfirmEditFecha = async (fechaInicio: string) => {
+    if (!editFechaSol) return;
+    await cuotasApi.recalcularVencimientos(editFechaSol.id, fechaInicio);
+    queryClient.invalidateQueries({ queryKey: ["cuotas"] });
+    // Refresh Plan
     if (viewData) handleViewPlan(viewData.idsolicitud || viewData.id);
   };
 
@@ -281,6 +303,14 @@ export default function SolicitudesPage() {
                   <h3 className="text-lg font-semibold text-slate-800">Detalle de Cuotas</h3>
                   <div className="flex gap-2">
                     <button
+                      onClick={handleOpenEditFecha}
+                      className="ghost-button text-sm py-2 flex items-center gap-2"
+                      title="Cambiar fecha de inicio y recalcular vencimientos"
+                    >
+                      <CalendarDays className="w-4 h-4" />
+                      Fecha de Inicio
+                    </button>
+                    <button
                       onClick={async () => {
                         try {
                           const blob = await reportesApi.recibosSolicitudPagados(viewData.id || viewData.idsolicitud);
@@ -308,6 +338,7 @@ export default function SolicitudesPage() {
 
                 <CuotasList
                   filtro={String(viewData?.id || viewData?.idsolicitud || "")}
+                  idsolicitud={viewData?.idsolicitud || viewData?.id}
                   isModal={true}
                   onView={(id) => handleViewCuota(id)}
                   onEdit={(c) => handleOpenEditCuota(c)}
@@ -332,6 +363,16 @@ export default function SolicitudesPage() {
             nroSolicitud={addCuotasSol.nroSolicitud}
             onClose={() => setAddCuotasSol(null)}
             onConfirm={handleConfirmAddCuotas}
+          />
+        )}
+
+        {editFechaSol && (
+          <SolicitudFechaModal
+            idsolicitud={editFechaSol.id}
+            nroSolicitud={editFechaSol.nroSolicitud}
+            fechaActual={editFechaSol.fechaActual}
+            onClose={() => setEditFechaSol(null)}
+            onConfirm={handleConfirmEditFecha}
           />
         )}
 

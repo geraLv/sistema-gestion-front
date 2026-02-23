@@ -39,7 +39,9 @@ apiClient.interceptors.response.use(
       } catch (refreshError) {
         refreshPromise = null;
         useAuthStore.getState().logout();
-        window.location.href = "/login";
+        if (window.location.pathname !== "/login") {
+          window.location.href = "/login";
+        }
         return Promise.reject(refreshError);
       }
     }

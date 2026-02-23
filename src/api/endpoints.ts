@@ -262,6 +262,14 @@ export const cuotasApi = {
     return response.data.data || response.data;
   },
 
+  recalcularVencimientos: async (idsolicitud: number, fechaInicio: string) => {
+    const response = await apiClient.put(
+      `/cuotas/solicitud/${idsolicitud}/recalcular-vencimientos`,
+      { fechaInicio },
+    );
+    return response.data.data || response.data;
+  },
+
   delete: async (id: number) => {
     const response = await apiClient.delete(`/cuotas/${id}`);
     return response.data;
