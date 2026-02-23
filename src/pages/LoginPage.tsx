@@ -50,7 +50,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         <div className="panel pad border border-slate-200 shadow-[0_20px_45px_rgba(15,23,42,0.12)]">
           <div className="flex items-center gap-3 mb-6">
-            <img src="/public/favicon.ico" alt="logo" className="h-12 w-auto" />
+            <img src="/favicon.ico" alt="logo" className="h-12 w-auto" />
             <div>
               <div className="text-lg font-semibold text-slate-900">
                 Crédito Gestión

@@ -48,7 +48,7 @@ export default function Header() {
             >
               <Menu className="w-6 h-6" />
             </button>
-            <img src="/public/favicon.ico" alt="logo" className="h-10 w-auto" />
+            <img src="/favicon.ico" alt="logo" className="h-10 w-auto" />
             <Link to="/" className="text-lg font-semibold text-gray-800 truncate">
               Crédito Gestión
             </Link>
@@ -72,7 +72,7 @@ export default function Header() {
           <div className="fixed inset-y-0 left-0 w-[80%] max-w-sm bg-[#f5f6f6] shadow-xl overflow-y-auto">
             <div className="px-6 py-4 flex items-center justify-between border-b border-gray-200">
               <div className="flex items-center gap-3">
-                <img src="/public/favicon.ico" alt="logo" className="h-8 w-auto" />
+                <img src="/favicon.ico" alt="logo" className="h-8 w-auto" />
                 <span className="font-semibold text-gray-900">Menú</span>
               </div>
               <button
@@ -168,7 +168,7 @@ export default function Header() {
         {/* Title */}
         <div className="px-6 pt-7 pb-6 bg-linear-to-r from-white via-white to-[#f5f6f6]">
           <div className="flex items-center gap-3">
-            <img src="/public/favicon.ico" alt="logo" className="h-16 w-auto" />
+            <img src="/favicon.ico" alt="logo" className="h-16 w-auto" />
             <div className="text-[18px] font-semibold text-gray-900">
               Crédito Gestión
             </div>
