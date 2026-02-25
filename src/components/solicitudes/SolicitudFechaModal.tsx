@@ -90,8 +90,7 @@ export function SolicitudFechaModal({
                 <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 flex gap-2">
                     <span className="text-amber-500 shrink-0 mt-0.5">⚠️</span>
                     <span>
-                        Al modificar esta fecha se <strong>recalcularán automáticamente las fechas de vencimiento de todas las cuotas impagas</strong> de esta solicitud.
-                        Las cuotas ya pagadas no se modifican.
+                        Al modificar esta fecha se <strong>recalcularán automáticamente las fechas de vencimiento de todas las cuotas</strong> de esta solicitud.
                     </span>
                 </div>
 

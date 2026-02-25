@@ -160,8 +160,15 @@ export default function SolicitudesPage() {
     setPayCuota(cuota);
   };
 
-  const handleSaveEditCuota = async (id: number, importe: number) => {
-    await cuotasApi.updateImporte(id, importe);
+  const handleSaveEditCuota = async (
+    id: number,
+    payload: { importe?: number; fechaPago?: string },
+  ) => {
+    if (payload.fechaPago) {
+      await cuotasApi.updateFechaPago(id, payload.fechaPago);
+    } else if (payload.importe !== undefined) {
+      await cuotasApi.updateImporte(id, payload.importe);
+    }
     setEditCuota(null);
     queryClient.invalidateQueries({ queryKey: ["cuotas"] });
     // Refresh Plan

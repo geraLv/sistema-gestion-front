@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import Layout from "../components/Layout";
-import { LoadingState } from "../components/Status";
+import { ErrorState, LoadingState } from "../components/Status";
 import { Modal } from "../components/ui/Modal";
 import { adminApi, auditApi, vendedoresAdminApi } from "../api/endpoints";
 
@@ -16,6 +16,9 @@ export default function AdminPage() {
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [loadingLogs, setLoadingLogs] = useState(false);
   const [loadingVendedores, setLoadingVendedores] = useState(false);
+  const [usersError, setUsersError] = useState<string | null>(null);
+  const [logsError, setLogsError] = useState<string | null>(null);
+  const [vendedoresError, setVendedoresError] = useState<string | null>(null);
 
   const [showCreate, setShowCreate] = useState(false);
   const [newUser, setNewUser] = useState({
@@ -50,23 +53,53 @@ export default function AdminPage() {
 
   const loadUsers = async () => {
     setLoadingUsers(true);
-    const data = await adminApi.getUsers();
-    setUsers(data);
-    setLoadingUsers(false);
+    setUsersError(null);
+    try {
+      const data = await adminApi.getUsers();
+      setUsers(data);
+    } catch (err: any) {
+      const msg =
+        err?.response?.data?.error ||
+        err?.message ||
+        "Error al cargar usuarios";
+      setUsersError(msg);
+    } finally {
+      setLoadingUsers(false);
+    }
   };
 
   const loadLogs = async (filters = auditFilters) => {
     setLoadingLogs(true);
-    const data = await auditApi.getLogs(filters);
-    setLogs(data);
-    setLoadingLogs(false);
+    setLogsError(null);
+    try {
+      const data = await auditApi.getLogs(filters);
+      setLogs(data);
+    } catch (err: any) {
+      const msg =
+        err?.response?.data?.error ||
+        err?.message ||
+        "Error al cargar auditoría";
+      setLogsError(msg);
+    } finally {
+      setLoadingLogs(false);
+    }
   };
 
   const loadVendedores = async () => {
     setLoadingVendedores(true);
-    const data = await vendedoresAdminApi.getAll();
-    setVendedores(data);
-    setLoadingVendedores(false);
+    setVendedoresError(null);
+    try {
+      const data = await vendedoresAdminApi.getAll();
+      setVendedores(data);
+    } catch (err: any) {
+      const msg =
+        err?.response?.data?.error ||
+        err?.message ||
+        "Error al cargar vendedores";
+      setVendedoresError(msg);
+    } finally {
+      setLoadingVendedores(false);
+    }
   };
 
   useEffect(() => {
@@ -181,6 +214,8 @@ export default function AdminPage() {
 
             {loadingUsers ? (
               <LoadingState />
+            ) : usersError ? (
+              <ErrorState message={usersError} />
             ) : (
               <div className="table-shell">
                 <table className="w-full">
@@ -315,6 +350,8 @@ export default function AdminPage() {
 
             {loadingLogs ? (
               <LoadingState />
+            ) : logsError ? (
+              <ErrorState message={logsError} />
             ) : (
               <div className="table-shell">
                 <table className="w-full">
@@ -370,6 +407,8 @@ export default function AdminPage() {
 
             {loadingVendedores ? (
               <LoadingState />
+            ) : vendedoresError ? (
+              <ErrorState message={vendedoresError} />
             ) : (
               <div className="table-shell">
                 <table className="w-full">

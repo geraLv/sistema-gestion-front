@@ -261,6 +261,12 @@ export const cuotasApi = {
     const response = await apiClient.put(`/cuotas/${id}/importe`, { importe });
     return response.data.data || response.data;
   },
+  updateFechaPago: async (id: number, fechaPago: string) => {
+    const response = await apiClient.put(`/cuotas/${id}/fecha-pago`, {
+      fechaPago,
+    });
+    return response.data.data || response.data;
+  },
 
   recalcularVencimientos: async (idsolicitud: number, fechaInicio: string) => {
     const response = await apiClient.put(

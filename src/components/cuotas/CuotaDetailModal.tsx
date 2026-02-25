@@ -1,5 +1,6 @@
 import { Printer, X, Info } from "lucide-react";
 import { Modal } from "../ui/Modal";
+import { formatDateEs, formatDateTimeEs } from "../../lib/date";
 
 interface CuotaDetailModalProps {
     cuota: any;
@@ -26,15 +27,8 @@ export function CuotaDetailModal({
 }: CuotaDetailModalProps) {
     if (!cuota) return null;
 
-    const formatDate = (dateStr?: string) => {
-        if (!dateStr) return "-";
-        return new Date(dateStr).toLocaleDateString("es-AR");
-    };
-
-    const formatFechaComprobante = (dateStr?: string) => {
-        if (!dateStr) return "-";
-        return new Date(dateStr).toLocaleString("es-AR");
-    };
+    const formatDate = (dateStr?: string) => formatDateEs(dateStr);
+    const formatFechaComprobante = (dateStr?: string) => formatDateTimeEs(dateStr);
 
     return (
         <Modal isOpen={true} onClose={onClose} className="max-w-xl h-[80vh]" showCloseButton={false}>

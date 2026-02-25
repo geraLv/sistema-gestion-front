@@ -9,6 +9,7 @@ import { DataTable } from "../ui/DataTable";
 import { FilterBar } from "../ui/FilterBar";
 import { ErrorState } from "../Status";
 import { cn } from "../../lib/utils";
+import { formatDateEs, parseDateInput } from "../../lib/date";
 
 export type CuotaColumn = {
     id: number;
@@ -130,7 +131,9 @@ export function CuotasList({ onView, onEdit, onPay, filtro, idsolicitud, isModal
 
     // Helper to check if date is past
     const isPast = (dateStr: string) => {
-        return new Date(dateStr) < new Date() && new Date(dateStr).getFullYear() > 2000;
+        const parsed = parseDateInput(dateStr);
+        if (!parsed) return false;
+        return parsed < new Date() && parsed.getFullYear() > 2000;
     };
 
     // ... columns ...
@@ -186,7 +189,7 @@ export function CuotasList({ onView, onEdit, onPay, filtro, idsolicitud, isModal
                 const isVencida = row.estado !== 2 && isPast(dateStr);
                 return (
                     <div className={cn("text-sm", isVencida && "text-red-600 font-semibold")}>
-                        {new Date(dateStr).toLocaleDateString()}
+                        {formatDateEs(dateStr)}
                         {isVencida && <span className="ml-1 text-[10px] bg-red-100 text-red-600 px-1 rounded">Vencida</span>}
                     </div>
                 );
@@ -220,27 +223,23 @@ export function CuotasList({ onView, onEdit, onPay, filtro, idsolicitud, isModal
                 const row = info.row.original;
                 return (
                     <div className="flex items-center gap-2">
-                        {row.estado !== 2 && (
-                            <>
-                                {onPay && (
-                                    <button
-                                        onClick={() => onPay(row)}
-                                        className="p-1.5 hover:bg-green-50 rounded text-green-600 transition-colors"
-                                        title="Registrar Pago"
-                                    >
-                                        <DollarSign className="w-4 h-4" />
-                                    </button>
-                                )}
-                                {onEdit && (
-                                    <button
-                                        onClick={() => onEdit(row)}
-                                        className="p-1.5 hover:bg-blue-50 rounded text-blue-600 transition-colors"
-                                        title="Editar Importe"
-                                    >
-                                        <Edit className="w-4 h-4" />
-                                    </button>
-                                )}
-                            </>
+                        {row.estado !== 2 && onPay && (
+                            <button
+                                onClick={() => onPay(row)}
+                                className="p-1.5 hover:bg-green-50 rounded text-green-600 transition-colors"
+                                title="Registrar Pago"
+                            >
+                                <DollarSign className="w-4 h-4" />
+                            </button>
+                        )}
+                        {onEdit && (
+                            <button
+                                onClick={() => onEdit(row)}
+                                className="p-1.5 hover:bg-blue-50 rounded text-blue-600 transition-colors"
+                                title={row.estado === 2 ? "Editar Fecha de Pago" : "Editar Importe"}
+                            >
+                                <Edit className="w-4 h-4" />
+                            </button>
                         )}
                         {onView && (
                             <button

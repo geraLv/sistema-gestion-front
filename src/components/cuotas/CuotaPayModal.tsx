@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { DollarSign, Upload, FileText, X, Trash } from "lucide-react";
 import { Modal } from "../ui/Modal";
+import { formatDateEs } from "../../lib/date";
 
 interface CuotaPayModalProps {
     cuota: any;
@@ -16,10 +17,7 @@ export function CuotaPayModal({ cuota, comprobantesPrevios = [], onClose, onConf
 
     if (!cuota) return null;
 
-    const formatDate = (dateStr?: string) => {
-        if (!dateStr) return "-";
-        return new Date(dateStr).toLocaleDateString("es-AR");
-    };
+    const formatDate = (dateStr?: string) => formatDateEs(dateStr);
 
     const handleConfirm = async () => {
         setError(null);

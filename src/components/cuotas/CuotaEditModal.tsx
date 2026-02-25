@@ -1,34 +1,49 @@
 import { useState, useEffect } from "react";
 import { Edit, X } from "lucide-react";
 import { Modal } from "../ui/Modal";
+import { formatDateInput } from "../../lib/date";
 
 interface CuotaEditModalProps {
     cuota: any;
     onClose: () => void;
-    onSave: (id: number, importe: number) => Promise<void>;
+    onSave: (id: number, payload: { importe?: number; fechaPago?: string }) => Promise<void>;
 }
 
 export function CuotaEditModal({ cuota, onClose, onSave }: CuotaEditModalProps) {
     const [importe, setImporte] = useState<number | string>("");
+    const [fechaPago, setFechaPago] = useState<string>("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const isPagada = Number(cuota?.estado) === 2;
 
     useEffect(() => {
         if (cuota) {
             setImporte(cuota.importe);
+            setFechaPago(formatDateInput(cuota.fecha));
         }
     }, [cuota]);
 
     const handleSubmit = async () => {
         setError(null);
-        if (!importe || Number(importe) <= 0) {
-            setError("El importe debe ser mayor a 0");
-            return;
+        if (isPagada) {
+            if (!fechaPago) {
+                setError("Debe seleccionar la fecha de pago.");
+                return;
+            }
+        } else {
+            if (!importe || Number(importe) <= 0) {
+                setError("El importe debe ser mayor a 0");
+                return;
+            }
         }
 
         setLoading(true);
         try {
-            await onSave(cuota.idcuota || cuota.id, Number(importe));
+            if (isPagada) {
+                await onSave(cuota.idcuota || cuota.id, { fechaPago });
+            } else {
+                await onSave(cuota.idcuota || cuota.id, { importe: Number(importe) });
+            }
             onClose();
         } catch (err: any) {
             setError(err.message || "Error al actualizar la cuota");
@@ -52,7 +67,7 @@ export function CuotaEditModal({ cuota, onClose, onSave }: CuotaEditModalProps) 
                             Editar Cuota
                         </h2>
                         <p className="mt-1 text-sm text-slate-500">
-                            Actualizá el importe.
+                            {isPagada ? "Actualizá la fecha de pago." : "Actualizá el importe."}
                         </p>
                     </div>
                 </div>
@@ -83,17 +98,30 @@ export function CuotaEditModal({ cuota, onClose, onSave }: CuotaEditModalProps) 
                     </div>
                 </div>
 
-                <div>
-                    <label className="block text-sm font-semibold text-slate-800 mb-2">Importe</label>
-                    <input
-                        type="number"
-                        step="0.01"
-                        className="input-sleek w-full text-lg"
-                        value={importe}
-                        onChange={(e) => setImporte(e.target.value)}
-                        autoFocus
-                    />
-                </div>
+                {isPagada ? (
+                    <div>
+                        <label className="block text-sm font-semibold text-slate-800 mb-2">Fecha de pago</label>
+                        <input
+                            type="date"
+                            className="input-sleek w-full text-lg"
+                            value={fechaPago}
+                            onChange={(e) => setFechaPago(e.target.value)}
+                            autoFocus
+                        />
+                    </div>
+                ) : (
+                    <div>
+                        <label className="block text-sm font-semibold text-slate-800 mb-2">Importe</label>
+                        <input
+                            type="number"
+                            step="0.01"
+                            className="input-sleek w-full text-lg"
+                            value={importe}
+                            onChange={(e) => setImporte(e.target.value)}
+                            autoFocus
+                        />
+                    </div>
+                )}
             </div>
 
             {/* Footer */}

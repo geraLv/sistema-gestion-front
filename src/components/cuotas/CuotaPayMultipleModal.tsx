@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { DollarSign, Upload, FileText, X, Trash } from "lucide-react";
 import { Modal } from "../ui/Modal";
+import { formatDateEs } from "../../lib/date";
 
 interface CuotaPayMultipleModalProps {
     cuotas: any[];
@@ -17,10 +18,7 @@ export function CuotaPayMultipleModal({ cuotas, onClose, onConfirm }: CuotaPayMu
 
     const totalAmount = cuotas.reduce((sum, c) => sum + (c.importe || 0), 0);
 
-    const formatDate = (dateStr?: string) => {
-        if (!dateStr) return "-";
-        return new Date(dateStr).toLocaleDateString("es-AR");
-    };
+    const formatDate = (dateStr?: string) => formatDateEs(dateStr);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFiles = Array.from(e.target.files || []);

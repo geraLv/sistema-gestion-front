@@ -69,9 +69,16 @@ export default function CuotasPage() {
     setPayCuota(cuota.raw || cuota);
   };
 
-  const handleSaveEdit = async (id: number, importe: number) => {
+  const handleSaveEdit = async (
+    id: number,
+    payload: { importe?: number; fechaPago?: string },
+  ) => {
     try {
-      await cuotasApi.updateImporte(id, importe);
+      if (payload.fechaPago) {
+        await cuotasApi.updateFechaPago(id, payload.fechaPago);
+      } else if (payload.importe !== undefined) {
+        await cuotasApi.updateImporte(id, payload.importe);
+      }
       setEditCuota(null);
       queryClient.invalidateQueries({ queryKey: ["cuotas"] });
     } catch (e) {
