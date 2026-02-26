@@ -52,7 +52,7 @@ export default function ImpresionesPage() {
     }
   };
 
-  const openBlob = (blob: Blob, filename: string, inline = true) => {
+  const openBlob = (blob: Blob, filename: string, inline = false) => {
     const url = URL.createObjectURL(blob);
     if (inline) {
       window.open(url, "_blank", "noopener,noreferrer");

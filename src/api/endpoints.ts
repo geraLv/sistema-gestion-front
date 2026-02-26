@@ -444,6 +444,10 @@ export const adminApi = {
     const response = await apiClient.patch(`/admin/users/${id}/role`, { role });
     return response.data.data || response.data;
   },
+  resetPassword: async (id: number, password: string) => {
+    const response = await apiClient.patch(`/admin/users/${id}/password`, { password });
+    return response.data.data || response.data;
+  },
 };
 
 export const auditApi = {

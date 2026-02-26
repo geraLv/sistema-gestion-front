@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Layout from "../components/Layout";
-import { reportesApi, solicitudesApi } from "../api/endpoints";
+import { cuotasApi, reportesApi, solicitudesApi } from "../api/endpoints";
 import { ErrorState, LoadingState } from "../components/Status";
 import "./MonitorPage.css";
 
@@ -44,7 +44,7 @@ export default function MonitorPage() {
         return;
       }
 
-      const cuotasResp: any = await solicitudesApi.getCuotas(
+      const cuotasResp: any = await cuotasApi.getForSolicitud(
         solicitud.idsolicitud,
       );
       const resumen = cuotasResp?.resumen || {};
@@ -88,7 +88,12 @@ export default function MonitorPage() {
       .monitorSolicitudPdf(data.nrosolicitud)
       .then((blob) => {
         const url = URL.createObjectURL(blob);
-        window.open(url, "_blank", "noopener,noreferrer");
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `monitor-solicitud-${data.nrosolicitud}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
         setTimeout(() => URL.revokeObjectURL(url), 1000);
       })
       .catch(() => {
@@ -214,7 +219,7 @@ export default function MonitorPage() {
           </div>
           <div className="monitor-actions mt-4">
             <button className="action-button" onClick={handleImprimir}>
-              Imprimir estos datos
+              Descargar PDF
             </button>
           </div>
         </div>

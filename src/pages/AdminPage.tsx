@@ -47,6 +47,10 @@ export default function AdminPage() {
   });
   const [editingVendedor, setEditingVendedor] = useState<any | null>(null);
 
+  // Edit User Modal state
+  const [editingUser, setEditingUser] = useState<any | null>(null);
+  const [editUserData, setEditUserData] = useState({ usuario: "", nombre: "", email: "", role: "vendedor", password: "" });
+
   useEffect(() => {
     loadUsers();
   }, []);
@@ -143,6 +147,38 @@ export default function AdminPage() {
   const handleToggleRole = async (id: number, role: string) => {
     await adminApi.setUserRole(id, role === "admin" ? "vendedor" : "admin");
     loadUsers();
+  };
+
+  const handleOpenEditUser = (user: any) => {
+    setEditingUser(user);
+    setEditUserData({
+      usuario: user.usuario || "",
+      nombre: user.nombre || "",
+      email: user.email || "",
+      role: user.role || "vendedor",
+      password: "",
+    });
+  };
+
+  const handleSaveEditUser = async () => {
+    if (!editingUser) return;
+    try {
+      await adminApi.updateUser(editingUser.iduser, {
+        usuario: editUserData.usuario,
+        nombre: editUserData.nombre,
+        email: editUserData.email,
+      });
+      if (editUserData.role !== editingUser.role) {
+        await adminApi.setUserRole(editingUser.iduser, editUserData.role);
+      }
+      if (editUserData.password.trim()) {
+        await adminApi.resetPassword(editingUser.iduser, editUserData.password.trim());
+      }
+      setEditingUser(null);
+      loadUsers();
+    } catch (err: any) {
+      alert(err?.response?.data?.error || err?.message || "Error al guardar");
+    }
   };
 
   const handleCreateVendedor = async () => {
@@ -260,6 +296,12 @@ export default function AdminPage() {
                           </span>
                         </td>
                         <td className="px-4 py-3 text-sm text-center">
+                          <button
+                            className="text-blue-600 hover:text-blue-800 mr-3"
+                            onClick={() => handleOpenEditUser(u)}
+                          >
+                            Editar
+                          </button>
                           <button
                             className="text-green-600 hover:text-green-800 mr-3"
                             onClick={() => handleToggleRole(u.iduser, u.role)}
@@ -609,6 +651,70 @@ export default function AdminPage() {
                   className="ghost-button flex-1"
                   onClick={() => setEditingVendedor(null)}
                 >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </Modal>
+        )}
+
+        {editingUser && (
+          <Modal isOpen={!!editingUser} onClose={() => setEditingUser(null)} className="max-w-md">
+            <div className="p-6">
+              <h2 className="text-xl font-semibold mb-4">Editar usuario</h2>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Usuario</label>
+                  <input
+                    className="input-sleek w-full"
+                    value={editUserData.usuario}
+                    onChange={(e) => setEditUserData({ ...editUserData, usuario: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Nombre</label>
+                  <input
+                    className="input-sleek w-full"
+                    value={editUserData.nombre}
+                    onChange={(e) => setEditUserData({ ...editUserData, nombre: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
+                  <input
+                    className="input-sleek w-full"
+                    type="email"
+                    value={editUserData.email}
+                    onChange={(e) => setEditUserData({ ...editUserData, email: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Rol</label>
+                  <select
+                    className="input-sleek w-full"
+                    value={editUserData.role}
+                    onChange={(e) => setEditUserData({ ...editUserData, role: e.target.value })}
+                  >
+                    <option value="vendedor">Vendedor</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Nueva Contraseña <span className="text-slate-400 font-normal">(dejar vacío para no cambiar)</span></label>
+                  <input
+                    className="input-sleek w-full"
+                    type="password"
+                    placeholder="••••••••"
+                    value={editUserData.password}
+                    onChange={(e) => setEditUserData({ ...editUserData, password: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2 mt-4">
+                <button className="action-button flex-1" onClick={handleSaveEditUser}>
+                  Guardar
+                </button>
+                <button className="ghost-button flex-1" onClick={() => setEditingUser(null)}>
                   Cancelar
                 </button>
               </div>
