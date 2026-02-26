@@ -297,7 +297,7 @@ export function CuotasList({ onView, onEdit, onPay, filtro, idsolicitud, isModal
     const mappedData: CuotaColumn[] = (data?.items || []).map((c: any) => ({
         id: c.idcuota,
         nroCuota: c.nrocuota,
-        nroSolicitud: c.nrosolicitud || c.solicitud?.nrosolicitud || "-",
+        nroSolicitud: c.solicitud?.nrosolicitud || c.nrosolicitud || "-",
         cliente: c.cliente_nombre || c.solicitud?.cliente?.appynom || "-",
         vencimiento: c.vencimiento,
         importe: c.importe,

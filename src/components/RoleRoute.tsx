@@ -3,11 +3,12 @@ import { Navigate } from "react-router-dom";
 import useAuthStore from "../stores/authStore";
 
 interface RoleRouteProps {
-  role: "admin" | "user";
+  role: "admin" | "vendedor";
   children: ReactNode;
+  redirectTo?: string;
 }
 
-export default function RoleRoute({ role, children }: RoleRouteProps) {
+export default function RoleRoute({ role, children, redirectTo = "/mis-ventas" }: RoleRouteProps) {
   const { usuario } = useAuthStore();
 
   if (!usuario) {
@@ -15,7 +16,7 @@ export default function RoleRoute({ role, children }: RoleRouteProps) {
   }
 
   if (usuario.role !== role) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={redirectTo} replace />;
   }
 
   return children;

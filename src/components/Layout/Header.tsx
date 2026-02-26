@@ -85,46 +85,60 @@ export default function Header() {
 
             <nav className="py-6">
               <ul className="flex flex-col gap-6">
-                <li className="border-b  align-text-bottom border-gray-200/80">
-                  <NavLink to="/" className={navItemClass} onClick={() => setMobileMenuOpen(false)}>
-                    INICIO
-                  </NavLink>
-                </li>
+                {usuario?.role === "admin" ? (
+                  <>
+                    <li className="border-b  align-text-bottom border-gray-200/80">
+                      <NavLink to="/" className={navItemClass} onClick={() => setMobileMenuOpen(false)}>
+                        INICIO
+                      </NavLink>
+                    </li>
 
-                <li className="border-b border-gray-200/80">
-                  <NavLink to="/monitor" className={navItemClass} onClick={() => setMobileMenuOpen(false)}>
-                    MONITOR DE SOLICITUD
-                  </NavLink>
-                </li>
+                    <li className="border-b border-gray-200/80">
+                      <NavLink to="/mis-ventas" className={navItemClass} onClick={() => setMobileMenuOpen(false)}>
+                        MIS VENTAS
+                      </NavLink>
+                    </li>
 
-                <li className="border-b border-gray-200/80">
-                  <NavLink to="/clientes" className={navItemClass} onClick={() => setMobileMenuOpen(false)}>
-                    CLIENTES
-                  </NavLink>
-                </li>
+                    <li className="border-b border-gray-200/80">
+                      <NavLink to="/monitor" className={navItemClass} onClick={() => setMobileMenuOpen(false)}>
+                        MONITOR DE SOLICITUD
+                      </NavLink>
+                    </li>
 
-                <li className="border-b border-gray-200/80">
-                  <NavLink to="/solicitudes" className={navItemClass} onClick={() => setMobileMenuOpen(false)}>
-                    SOLICITUDES
-                  </NavLink>
-                </li>
+                    <li className="border-b border-gray-200/80">
+                      <NavLink to="/clientes" className={navItemClass} onClick={() => setMobileMenuOpen(false)}>
+                        CLIENTES
+                      </NavLink>
+                    </li>
 
-                <li className="border-b border-gray-200/80">
-                  <NavLink to="/cuotas" className={navItemClass} onClick={() => setMobileMenuOpen(false)}>
-                    CUOTAS
-                  </NavLink>
-                </li>
+                    <li className="border-b border-gray-200/80">
+                      <NavLink to="/solicitudes" className={navItemClass} onClick={() => setMobileMenuOpen(false)}>
+                        SOLICITUDES
+                      </NavLink>
+                    </li>
 
-                <li className="border-b border-gray-200/80">
-                  <NavLink to="/impresiones" className={navItemClass} onClick={() => setMobileMenuOpen(false)}>
-                    IMPRESIONES
-                  </NavLink>
-                </li>
+                    <li className="border-b border-gray-200/80">
+                      <NavLink to="/cuotas" className={navItemClass} onClick={() => setMobileMenuOpen(false)}>
+                        CUOTAS
+                      </NavLink>
+                    </li>
 
-                {usuario?.role === "admin" && (
+                    <li className="border-b border-gray-200/80">
+                      <NavLink to="/impresiones" className={navItemClass} onClick={() => setMobileMenuOpen(false)}>
+                        IMPRESIONES
+                      </NavLink>
+                    </li>
+
+                    <li className="border-b border-gray-200/80">
+                      <NavLink to="/admin" className={navItemClass} onClick={() => setMobileMenuOpen(false)}>
+                        ADMIN
+                      </NavLink>
+                    </li>
+                  </>
+                ) : (
                   <li className="border-b border-gray-200/80">
-                    <NavLink to="/admin" className={navItemClass} onClick={() => setMobileMenuOpen(false)}>
-                      ADMIN
+                    <NavLink to="/mis-ventas" className={navItemClass} onClick={() => setMobileMenuOpen(false)}>
+                      MIS VENTAS
                     </NavLink>
                   </li>
                 )}
@@ -181,46 +195,60 @@ export default function Header() {
         <nav className="flex items-center flex-col h-full">
           <ul className="flex flex-col">
             {/* helper: separator like image */}
-            <li className="border-b  align-text-bottom border-gray-200/80">
-              <NavLink to="/" className={navItemClass}>
-                INICIO
-              </NavLink>
-            </li>
+            {usuario?.role === "admin" ? (
+              <>
+                <li className="border-b  align-text-bottom border-gray-200/80">
+                  <NavLink to="/" className={navItemClass}>
+                    INICIO
+                  </NavLink>
+                </li>
 
-            <li className="border-b border-gray-200/80">
-              <NavLink to="/monitor" className={navItemClass}>
-                MONITOR DE SOLICITUD
-              </NavLink>
-            </li>
+                <li className="border-b border-gray-200/80">
+                  <NavLink to="/mis-ventas" className={navItemClass}>
+                    MIS VENTAS
+                  </NavLink>
+                </li>
 
-            <li className="border-b border-gray-200/80">
-              <NavLink to="/clientes" className={navItemClass}>
-                CLIENTES
-              </NavLink>
-            </li>
+                <li className="border-b border-gray-200/80">
+                  <NavLink to="/monitor" className={navItemClass}>
+                    MONITOR DE SOLICITUD
+                  </NavLink>
+                </li>
 
-            <li className="border-b border-gray-200/80">
-              <NavLink to="/solicitudes" className={navItemClass}>
-                SOLICITUDES
-              </NavLink>
-            </li>
+                <li className="border-b border-gray-200/80">
+                  <NavLink to="/clientes" className={navItemClass}>
+                    CLIENTES
+                  </NavLink>
+                </li>
 
-            <li className="border-b border-gray-200/80">
-              <NavLink to="/cuotas" className={navItemClass}>
-                CUOTAS
-              </NavLink>
-            </li>
+                <li className="border-b border-gray-200/80">
+                  <NavLink to="/solicitudes" className={navItemClass}>
+                    SOLICITUDES
+                  </NavLink>
+                </li>
 
-            <li className="border-b border-gray-200/80">
-              <NavLink to="/impresiones" className={navItemClass}>
-                IMPRESIONES
-              </NavLink>
-            </li>
+                <li className="border-b border-gray-200/80">
+                  <NavLink to="/cuotas" className={navItemClass}>
+                    CUOTAS
+                  </NavLink>
+                </li>
 
-            {usuario?.role === "admin" && (
+                <li className="border-b border-gray-200/80">
+                  <NavLink to="/impresiones" className={navItemClass}>
+                    IMPRESIONES
+                  </NavLink>
+                </li>
+
+                <li className="border-b border-gray-200/80">
+                  <NavLink to="/admin" className={navItemClass}>
+                    ADMIN
+                  </NavLink>
+                </li>
+              </>
+            ) : (
               <li className="border-b border-gray-200/80">
-                <NavLink to="/admin" className={navItemClass}>
-                  ADMIN
+                <NavLink to="/mis-ventas" className={navItemClass}>
+                  MIS VENTAS
                 </NavLink>
               </li>
             )}

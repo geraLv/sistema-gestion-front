@@ -1,6 +1,7 @@
 // Tipos con transformación para usar camelCase en la UI
 export interface Usuario {
   id: number;
+  iduser?: number;
   usuario: string;
   nombre: string;
   email?: string;

@@ -11,8 +11,17 @@ import AdelantosPage from "./pages/AdelantosPage";
 import ImpresionesPage from "./pages/ImpresionesPage";
 import AdminPage from "./pages/AdminPage";
 import MonitorPage from "./pages/MonitorPage";
+import MisVentasPage from "./pages/MisVentasPage";
 import { authApi } from "./api/endpoints";
 import useAuthStore from "./stores/authStore";
+
+function HomeRedirect() {
+  const { usuario } = useAuthStore();
+  if (usuario?.role === "admin") {
+    return <DashboardPage />;
+  }
+  return <Navigate to="/mis-ventas" replace />;
+}
 
 function App() {
   const { setUsuario, logout, setIsLoading, setHasHydrated, hasHydrated } =
@@ -47,20 +56,35 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+
+        {/* Ruta raíz: admin → Dashboard, vendedor → /mis-ventas */}
         <Route
           path="/"
           element={
             <ProtectedRoute>
-              <DashboardPage />
+              <HomeRedirect />
             </ProtectedRoute>
           }
         />
-        {/* Placeholder para otras rutas */}
+
+        {/* Dashboard personal del vendedor */}
+        <Route
+          path="/mis-ventas"
+          element={
+            <ProtectedRoute>
+              <MisVentasPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Rutas solo para administradores */}
         <Route
           path="/clientes"
           element={
             <ProtectedRoute>
-              <ClientesPage />
+              <RoleRoute role="admin">
+                <ClientesPage />
+              </RoleRoute>
             </ProtectedRoute>
           }
         />
@@ -68,7 +92,9 @@ function App() {
           path="/solicitudes"
           element={
             <ProtectedRoute>
-              <SolicitudesPage />
+              <RoleRoute role="admin">
+                <SolicitudesPage />
+              </RoleRoute>
             </ProtectedRoute>
           }
         />
@@ -76,7 +102,9 @@ function App() {
           path="/cuotas"
           element={
             <ProtectedRoute>
-              <CuotasPage />
+              <RoleRoute role="admin">
+                <CuotasPage />
+              </RoleRoute>
             </ProtectedRoute>
           }
         />
@@ -84,7 +112,9 @@ function App() {
           path="/adelantos"
           element={
             <ProtectedRoute>
-              <AdelantosPage />
+              <RoleRoute role="admin">
+                <AdelantosPage />
+              </RoleRoute>
             </ProtectedRoute>
           }
         />
@@ -92,7 +122,9 @@ function App() {
           path="/impresiones"
           element={
             <ProtectedRoute>
-              <ImpresionesPage />
+              <RoleRoute role="admin">
+                <ImpresionesPage />
+              </RoleRoute>
             </ProtectedRoute>
           }
         />
@@ -100,7 +132,9 @@ function App() {
           path="/monitor"
           element={
             <ProtectedRoute>
-              <MonitorPage />
+              <RoleRoute role="admin">
+                <MonitorPage />
+              </RoleRoute>
             </ProtectedRoute>
           }
         />

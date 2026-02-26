@@ -62,7 +62,7 @@ export default function MonitorPage() {
           "",
         fechaAlta: solicitud.fechalta || "",
         producto: solicitud.producto?.descripcion || solicitud.prdescripcion,
-        vendedor: solicitud.vendedor?.apellidonombre || solicitud.vendedor,
+        vendedor: solicitud.usuario?.nombre || "",
         montoCuota: solicitud.monto || 0,
         totalPagar: solicitud.totalapagar || 0,
         cuotas: solicitud.cantidadcuotas || 0,

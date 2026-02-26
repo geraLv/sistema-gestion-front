@@ -26,8 +26,8 @@ export default function CuotasPage() {
       const data = await cuotasApi.getById(id);
       setViewCuota(data);
 
-      if (data?.solicitudId) {
-        const solId = Number(data.solicitudId);
+      if (data?.relasolicitud) {
+        const solId = Number(data.relasolicitud);
         try {
           const sol = await solicitudesApi.getById(solId);
           setViewSolicitud(sol);

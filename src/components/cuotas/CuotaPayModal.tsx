@@ -21,10 +21,14 @@ export function CuotaPayModal({ cuota, comprobantesPrevios = [], onClose, onConf
 
     const handleConfirm = async () => {
         setError(null);
+        if (!file) {
+            setError("Debe adjuntar un comprobante de pago (PDF) para continuar.");
+            return;
+        }
         setLoading(true);
         try {
             await onConfirm(cuota.idcuota || cuota.id, file);
-            onClose(); // Close on success, parent handles refresh
+            onClose();
         } catch (err: any) {
             console.error("Payment error:", err);
             const msg = err.response?.data?.error || err.message || "Error al procesar el pago";
@@ -47,7 +51,7 @@ export function CuotaPayModal({ cuota, comprobantesPrevios = [], onClose, onConf
                             Pago de Cuota
                         </h2>
                         <p className="mt-1 text-sm text-slate-500">
-                            Confirmá el pago y adjuntá el comprobante (opcional).
+                            Confirmá el pago y adjuntá el comprobante <span className="text-red-500 font-semibold">(obligatorio)</span>.
                         </p>
                     </div>
                 </div>
@@ -85,7 +89,7 @@ export function CuotaPayModal({ cuota, comprobantesPrevios = [], onClose, onConf
 
                 {/* Upload Area */}
                 <div className="space-y-2">
-                    <label className="text-sm font-semibold text-slate-800">Comprobante (PDF)</label>
+                    <label className="text-sm font-semibold text-slate-800">Comprobante (PDF) <span className="text-red-500">*</span></label>
                     <div className="relative group">
                         <input
                             type="file"
@@ -157,7 +161,7 @@ export function CuotaPayModal({ cuota, comprobantesPrevios = [], onClose, onConf
                 <button
                     className="action-button min-w-[140px]"
                     onClick={handleConfirm}
-                    disabled={loading}
+                    disabled={loading || !file}
                 >
                     {loading ? "Procesando..." : "Confirmar Pago"}
                 </button>

@@ -203,6 +203,23 @@ export const solicitudesApi = {
     );
     return response.data.data || [];
   },
+
+  getMisVentas: async (params?: { page?: number; pageSize?: number }) => {
+    const response = await apiClient.get<ApiResponse<Solicitud[]>>(
+      "/solicitudes/mis-ventas",
+      {
+        params: {
+          page: params?.page || undefined,
+          pageSize: params?.pageSize || undefined,
+        },
+      },
+    );
+    return {
+      items: (response.data.data || []) as any[],
+      total: (response.data as any).total ?? 0,
+      kpis: (response.data as any).kpis,
+    };
+  },
 };
 
 // Cuotas

@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
-// import { useForm } from "react-hook-form"; // Todo: Integrate in future steps if requested
 import { useCreateSolicitud, useUpdateSolicitud, useSolicitud } from "../../hooks/useSolicitudes";
-import { clientesApi, productosApi, vendedoresApi } from "../../api/endpoints";
+import { clientesApi, productosApi } from "../../api/endpoints";
 import { SearchableSelect } from "../ui/SearchableSelect";
 
 interface SolicitudFormProps {
@@ -18,7 +17,6 @@ export function SolicitudForm({ id, onSuccess, onCancel }: SolicitudFormProps) {
 
     const [clientes, setClientes] = useState<any[]>([]);
     const [productos, setProductos] = useState<any[]>([]);
-    const [vendedores, setVendedores] = useState<any[]>([]);
 
     // Manual form state (to match existing style but cleaner)
     const [formData, setFormData] = useState({
@@ -29,7 +27,6 @@ export function SolicitudForm({ id, onSuccess, onCancel }: SolicitudFormProps) {
         monto: "", // Precio unitario / base
         totalapagar: "", // Precio final
         observaciones: "",
-        nroSolicitud: "",
         estado: 1, // 1 Pendiente, 0 Anulada
     });
 
@@ -39,14 +36,12 @@ export function SolicitudForm({ id, onSuccess, onCancel }: SolicitudFormProps) {
         // Load dependencies
         const loadDeps = async () => {
             try {
-                const [c, p, v] = await Promise.all([
+                const [c, p] = await Promise.all([
                     clientesApi.getAll(),
                     productosApi.getAll(),
-                    vendedoresApi.getAll()
                 ]);
                 setClientes((c as any).data || c || []);
                 setProductos((p as any).data || p || []);
-                setVendedores((v as any).data || v || []);
             } catch (err) {
                 console.error("Error loading dependencies", err);
             }
@@ -67,7 +62,6 @@ export function SolicitudForm({ id, onSuccess, onCancel }: SolicitudFormProps) {
                 monto: String(data.importe || raw.monto || ""),
                 totalapagar: String(data.totalPagado && data.totalPagado > 0 ? (data.importe * data.cantidadCuotas) : (raw.totalapagar || "")),
                 observaciones: data.observaciones || raw.observacion || "",
-                nroSolicitud: data.nroSolicitud || raw.nrosolicitud || "",
                 estado: (data.estado === "Activa" || data.estado === "Pendiente" || raw.estado === 1) ? 1 : 0,
             });
         }
@@ -77,8 +71,8 @@ export function SolicitudForm({ id, onSuccess, onCancel }: SolicitudFormProps) {
         e.preventDefault();
         setError(null);
 
-        // Basic validation
-        if (!formData.clienteId || !formData.productoId || !formData.vendedorId || !formData.totalapagar || !formData.cantidadCuotas) {
+        // Basic validation — sin campo vendedor
+        if (!formData.clienteId || !formData.productoId || !formData.totalapagar || !formData.cantidadCuotas) {
             setError("Todos los campos marcados con * son obligatorios");
             return;
         }
@@ -119,13 +113,13 @@ export function SolicitudForm({ id, onSuccess, onCancel }: SolicitudFormProps) {
 
         const payload = {
             selectCliente: parseInt(formData.clienteId),
-            selectVendedor: parseInt(formData.vendedorId),
+            selectVendedor: 0, // campo legacy, relausuario se toma del JWT
             idproducto: parseInt(formData.productoId),
             monto: monto,
             selectCuotas: cuotas,
             totalapagar: total,
             observacion: formData.observaciones,
-            nroSolicitud: formData.nroSolicitud,
+            nroSolicitud: "", // generado automáticamente por el backend
             selectEstado: formData.estado,
         };
 
@@ -150,7 +144,6 @@ export function SolicitudForm({ id, onSuccess, onCancel }: SolicitudFormProps) {
     }
 
     const clienteOptions = clientes.map(c => ({ value: c.idcliente, label: c.appynom }));
-    const vendedorOptions = vendedores.map(v => ({ value: v.idvendedor, label: v.apellidonombre }));
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -172,17 +165,6 @@ export function SolicitudForm({ id, onSuccess, onCancel }: SolicitudFormProps) {
                     />
                 </div>
 
-                {/* Vendedor */}
-                <div>
-                    <SearchableSelect
-                        label="Vendedor *"
-                        options={vendedorOptions}
-                        value={formData.vendedorId}
-                        onChange={(val) => setFormData({ ...formData, vendedorId: String(val) })}
-                        placeholder="Buscar vendedor..."
-                    />
-                </div>
-
                 {/* Producto */}
                 <div>
                     <label className="block text-sm font-semibold mb-1">Producto *</label>
@@ -196,20 +178,6 @@ export function SolicitudForm({ id, onSuccess, onCancel }: SolicitudFormProps) {
                             <option key={p.idproducto} value={p.idproducto}>{p.descripcion} (${p.precio})</option>
                         ))}
                     </select>
-                </div>
-
-                {/* Nro Solicitud */}
-                <div>
-                    <label className="block text-sm font-semibold mb-1">Nro Solicitud {isEdit && "*"}</label>
-                    <input
-                        type="text"
-                        className="input-sleek w-full"
-                        placeholder="Generado autom. si vacío"
-                        value={formData.nroSolicitud}
-                        onChange={e => setFormData({ ...formData, nroSolicitud: e.target.value })}
-                        disabled={isEdit}
-                        title={isEdit ? "No se puede modificar el número de solicitud." : ""}
-                    />
                 </div>
 
                 {/* Cantidad Cuotas */}

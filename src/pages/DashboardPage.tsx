@@ -11,6 +11,7 @@ import {
   TrendingUp,
   Activity,
   ArrowUpRight,
+  CheckCircle,
 } from "lucide-react";
 import {
   XAxis,
@@ -22,6 +23,29 @@ import {
   Area,
 } from "recharts";
 
+interface SolicitudHoy {
+  id: number;
+  nroSolicitud: string;
+  clienteNombre: string;
+  clienteDni: string;
+  productoDescripcion: string;
+  vendedorNombre: string;
+  monto: number;
+  totalapagar: number;
+  cantidadcuotas: number;
+  estado: number;
+  fechalta: string;
+}
+
+interface CuotaHoy {
+  id: number;
+  nrocuota: number;
+  importe: number;
+  fecha: string;
+  nroSolicitud: string;
+  clienteNombre: string;
+}
+
 interface DashboardData {
   totalClientes: number;
   totalSolicitudes: number;
@@ -29,18 +53,27 @@ interface DashboardData {
   cobradasHoy: number;
   vencidasHoy: number;
   vencidas30: number;
-  solicitudesRecientes: Array<{
-    id: number;
-    nroSolicitud: string;
-    clienteNombre: string;
-    importe: number;
-    estado: string;
-  }>;
+  montoCobradasHoy: number;
+  solicitudesHoy: SolicitudHoy[];
+  cuotasHoy: CuotaHoy[];
   charts?: {
     revenue: Array<{ month: string; total: number }>;
     efficiency: { expected: number; collected: number };
   };
 }
+
+const fmt = (n: number) =>
+  new Intl.NumberFormat("es-AR", {
+    style: "currency",
+    currency: "ARS",
+    maximumFractionDigits: 0,
+  }).format(n);
+
+const estadoLabel: Record<number, { label: string; color: string }> = {
+  0: { label: "Baja", color: "bg-red-100 text-red-700" },
+  1: { label: "Activa", color: "bg-green-100 text-green-700" },
+  2: { label: "Pagada", color: "bg-blue-100 text-blue-700" },
+};
 
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData>({
@@ -50,10 +83,13 @@ export default function DashboardPage() {
     cobradasHoy: 0,
     vencidasHoy: 0,
     vencidas30: 0,
-    solicitudesRecientes: [],
+    montoCobradasHoy: 0,
+    solicitudesHoy: [],
+    cuotasHoy: [],
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"solicitudes" | "cobros">("solicitudes");
 
   useEffect(() => {
     loadDashboardData();
@@ -73,32 +109,15 @@ export default function DashboardPage() {
         cobradasHoy: summary?.kpis?.cobradasHoy || 0,
         vencidasHoy: summary?.kpis?.vencidasHoy || 0,
         vencidas30: summary?.kpis?.vencidas30 || 0,
-        solicitudesRecientes: (summary?.recientes || []).map((s: any) => ({
-          id: s.id,
-          nroSolicitud: s.nroSolicitud,
-          clienteNombre: s.clienteNombre || "Desconocido",
-          importe: s.importe || 0,
-          estado:
-            s.estado === 0 ? "Impaga" : s.estado === 2 ? "Pagada" : "Pendiente",
-        })),
+        montoCobradasHoy: summary?.kpis?.montoCobradasHoy || 0,
+        solicitudesHoy: summary?.solicitudesHoy || [],
+        cuotasHoy: summary?.cuotasHoy || [],
         charts: summary?.charts,
       });
     } catch (err) {
       console.error("Error:", err);
-      // setError("No se pudo cargar el dashboard. Intente nuevamente.");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Pagada":
-        return "bg-green-100 text-green-800";
-      case "Impaga":
-        return "bg-red-100 text-red-800";
-      default:
-        return "bg-amber-100 text-amber-800";
     }
   };
 
@@ -141,8 +160,8 @@ export default function DashboardPage() {
           <LoadingState />
         ) : (
           <div className="space-y-6">
-            {/* Quick Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Quick Stats Grid — 5 cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
               <StatCard
                 label="Clientes Totales"
                 value={data.totalClientes}
@@ -158,9 +177,16 @@ export default function DashboardPage() {
               <StatCard
                 label="Cuotas Cobradas (Hoy)"
                 value={data.cobradasHoy}
-                icon={DollarSign}
+                icon={CheckCircle}
                 colorClass="bg-green-50 text-green-600"
                 trend="Actividad de hoy"
+              />
+              <StatCard
+                label="Monto Cobrado (Hoy)"
+                value={fmt(data.montoCobradasHoy)}
+                icon={DollarSign}
+                colorClass="bg-emerald-50 text-emerald-600"
+                trend="Total recaudado hoy"
               />
               <StatCard
                 label="Cuotas Vencidas (Hoy)"
@@ -184,7 +210,6 @@ export default function DashboardPage() {
                   </select>
                 </div>
                 <div className="h-64">
-                  {/* Fallback if no chart data yet */}
                   {data.charts?.revenue ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={data.charts.revenue} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
@@ -195,9 +220,9 @@ export default function DashboardPage() {
                           </linearGradient>
                         </defs>
                         <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
-                        <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value}`} />
+                        <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
                         <Tooltip
-                          contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                          contentStyle={{ backgroundColor: "#fff", borderRadius: "8px", border: "none", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }}
                           formatter={(value: number | undefined) => [`$${(value || 0).toLocaleString()}`, "Ingresos"] as [string, string]}
                         />
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
@@ -210,9 +235,8 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Efficiency & Lists */}
+              {/* Efficiency & Shortcut */}
               <div className="space-y-6">
-                {/* Collection Efficiency */}
                 <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
                   <h2 className="text-lg font-bold text-slate-800 mb-4">Eficiencia de Cobro (Mes)</h2>
                   {data.charts?.efficiency && (
@@ -227,23 +251,22 @@ export default function DashboardPage() {
                         <div
                           className="bg-green-500 h-3 rounded-full"
                           style={{ width: `${Math.min(100, (data.charts.efficiency.collected / (data.charts.efficiency.expected || 1)) * 100)}%` }}
-                        ></div>
+                        />
                       </div>
                       <div className="grid grid-cols-2 gap-2 text-center">
                         <div className="p-2 bg-green-50 rounded-lg">
                           <div className="text-xs text-green-600 mb-1">Cobrado</div>
-                          <div className="font-bold text-green-800">${data.charts.efficiency.collected.toLocaleString()}</div>
+                          <div className="font-bold text-green-800 text-sm">{fmt(data.charts.efficiency.collected)}</div>
                         </div>
                         <div className="p-2 bg-slate-50 rounded-lg">
                           <div className="text-xs text-slate-500 mb-1">Esperado</div>
-                          <div className="font-bold text-slate-700">${data.charts.efficiency.expected.toLocaleString()}</div>
+                          <div className="font-bold text-slate-700 text-sm">{fmt(data.charts.efficiency.expected)}</div>
                         </div>
                       </div>
                     </>
                   )}
                 </div>
 
-                {/* Shortcuts */}
                 <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-4">
                   <Link to="/solicitudes" className="flex items-center justify-between p-3 hover:bg-slate-50 rounded-lg group transition-colors">
                     <div className="flex items-center gap-3">
@@ -258,48 +281,155 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Recent Solicitudes Styles Table */}
+            {/* Actividad del Día — tabs */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-              <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
-                <h2 className="text-lg font-bold text-slate-800">Últimas Solicitudes</h2>
-                <Link to="/solicitudes" className="text-sm text-purple-600 font-medium hover:underline">Ver todas</Link>
+              {/* Header con tabs */}
+              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <div className="flex gap-1 bg-slate-100 rounded-lg p-1">
+                  <button
+                    onClick={() => setActiveTab("solicitudes")}
+                    className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${activeTab === "solicitudes"
+                        ? "bg-white text-slate-800 shadow-sm"
+                        : "text-slate-500 hover:text-slate-700"
+                      }`}
+                  >
+                    Solicitudes del Día
+                    <span className={`ml-2 text-xs px-1.5 py-0.5 rounded-full ${activeTab === "solicitudes" ? "bg-purple-100 text-purple-700" : "bg-slate-200 text-slate-500"
+                      }`}>
+                      {data.solicitudesHoy.length}
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("cobros")}
+                    className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${activeTab === "cobros"
+                        ? "bg-white text-slate-800 shadow-sm"
+                        : "text-slate-500 hover:text-slate-700"
+                      }`}
+                  >
+                    Cobros del Día
+                    <span className={`ml-2 text-xs px-1.5 py-0.5 rounded-full ${activeTab === "cobros" ? "bg-green-100 text-green-700" : "bg-slate-200 text-slate-500"
+                      }`}>
+                      {data.cuotasHoy.length}
+                    </span>
+                  </button>
+                </div>
+                <Link
+                  to={activeTab === "solicitudes" ? "/solicitudes" : "/cuotas"}
+                  className="text-sm text-purple-600 font-medium hover:underline"
+                >
+                  Ver todas
+                </Link>
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-slate-50/50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Nro</th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Cliente</th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Importe</th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Estado</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {data.solicitudesRecientes.map((solicitud) => (
-                      <tr key={solicitud.id} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
-                          #{solicitud.nroSolicitud}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
-                          {solicitud.clienteNombre}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
-                          ${solicitud.importe.toLocaleString("es-AR", { minimumFractionDigits: 2 })}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(solicitud.estado).replace("bg-", "border-").replace("text-", "text-")} ${getStatusColor(solicitud.estado)}`}>
-                            {solicitud.estado}
-                          </span>
-                        </td>
+              {/* Tab: Solicitudes del Día */}
+              {activeTab === "solicitudes" && (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-slate-50/50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Nro</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Cliente</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Producto</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Vendedor</th>
+                        <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Monto</th>
+                        <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Total</th>
+                        <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Cuotas</th>
+                        <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Estado</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {data.solicitudesRecientes.length === 0 && (
-                  <div className="p-8 text-center text-slate-500">No hay actividad reciente</div>
-                )}
-              </div>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {data.solicitudesHoy.length === 0 ? (
+                        <tr>
+                          <td colSpan={8} className="px-6 py-10 text-center text-slate-400 text-sm">
+                            No se crearon solicitudes hoy
+                          </td>
+                        </tr>
+                      ) : (
+                        data.solicitudesHoy.map((s) => {
+                          const est = estadoLabel[s.estado] ?? { label: "—", color: "bg-gray-100 text-gray-600" };
+                          return (
+                            <tr key={s.id} className="hover:bg-slate-50/50 transition-colors">
+                              <td className="px-4 py-3 text-sm font-medium text-slate-900">#{s.nroSolicitud}</td>
+                              <td className="px-4 py-3 text-sm text-slate-700">
+                                <div>{s.clienteNombre}</div>
+                                {s.clienteDni && <div className="text-xs text-slate-400">DNI {s.clienteDni}</div>}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-slate-600">{s.productoDescripcion || "—"}</td>
+                              <td className="px-4 py-3 text-sm text-slate-600">{s.vendedorNombre || "—"}</td>
+                              <td className="px-4 py-3 text-sm text-right text-slate-700 font-medium">{fmt(s.monto)}</td>
+                              <td className="px-4 py-3 text-sm text-right text-slate-900 font-semibold">{fmt(s.totalapagar)}</td>
+                              <td className="px-4 py-3 text-sm text-center text-slate-600">{s.cantidadcuotas}</td>
+                              <td className="px-4 py-3 text-center">
+                                <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-medium ${est.color}`}>
+                                  {est.label}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                    {data.solicitudesHoy.length > 0 && (
+                      <tfoot className="bg-slate-50/80 border-t border-slate-200">
+                        <tr>
+                          <td colSpan={4} className="px-4 py-2 text-xs font-semibold text-slate-500 uppercase">Total del día</td>
+                          <td className="px-4 py-2 text-right text-sm font-bold text-slate-700">
+                            {fmt(data.solicitudesHoy.reduce((s, r) => s + r.monto, 0))}
+                          </td>
+                          <td className="px-4 py-2 text-right text-sm font-bold text-slate-900">
+                            {fmt(data.solicitudesHoy.reduce((s, r) => s + r.totalapagar, 0))}
+                          </td>
+                          <td colSpan={2} />
+                        </tr>
+                      </tfoot>
+                    )}
+                  </table>
+                </div>
+              )}
+
+              {/* Tab: Cobros del Día */}
+              {activeTab === "cobros" && (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-slate-50/50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Solicitud</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Cliente</th>
+                        <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Cuota Nro</th>
+                        <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Importe</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {data.cuotasHoy.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} className="px-6 py-10 text-center text-slate-400 text-sm">
+                            No se registraron cobros hoy
+                          </td>
+                        </tr>
+                      ) : (
+                        data.cuotasHoy.map((c) => (
+                          <tr key={c.id} className="hover:bg-slate-50/50 transition-colors">
+                            <td className="px-4 py-3 text-sm font-medium text-slate-900">#{c.nroSolicitud}</td>
+                            <td className="px-4 py-3 text-sm text-slate-700">{c.clienteNombre}</td>
+                            <td className="px-4 py-3 text-sm text-center text-slate-600">{c.nrocuota}</td>
+                            <td className="px-4 py-3 text-sm text-right font-semibold text-emerald-700">{fmt(c.importe)}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                    {data.cuotasHoy.length > 0 && (
+                      <tfoot className="bg-slate-50/80 border-t border-slate-200">
+                        <tr>
+                          <td colSpan={3} className="px-4 py-2 text-xs font-semibold text-slate-500 uppercase">Total cobrado hoy</td>
+                          <td className="px-4 py-2 text-right text-sm font-bold text-emerald-700">
+                            {fmt(data.montoCobradasHoy)}
+                          </td>
+                        </tr>
+                      </tfoot>
+                    )}
+                  </table>
+                </div>
+              )}
             </div>
           </div>
         )}

@@ -26,7 +26,7 @@ export default function AdminPage() {
     password: "",
     nombre: "",
     email: "",
-    role: "user",
+    role: "vendedor",
     status: 1,
   });
 
@@ -129,7 +129,7 @@ export default function AdminPage() {
       password: "",
       nombre: "",
       email: "",
-      role: "user",
+      role: "vendedor",
       status: 1,
     });
     loadUsers();
@@ -141,7 +141,7 @@ export default function AdminPage() {
   };
 
   const handleToggleRole = async (id: number, role: string) => {
-    await adminApi.setUserRole(id, role === "admin" ? "user" : "admin");
+    await adminApi.setUserRole(id, role === "admin" ? "vendedor" : "admin");
     loadUsers();
   };
 
@@ -511,7 +511,7 @@ export default function AdminPage() {
                     setNewUser({ ...newUser, role: e.target.value })
                   }
                 >
-                  <option value="user">Usuario</option>
+                  <option value="vendedor">Vendedor</option>
                   <option value="admin">Admin</option>
                 </select>
               </div>

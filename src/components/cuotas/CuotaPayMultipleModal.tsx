@@ -31,6 +31,10 @@ export function CuotaPayMultipleModal({ cuotas, onClose, onConfirm }: CuotaPayMu
 
     const handleConfirm = async () => {
         setError(null);
+        if (files.length === 0) {
+            setError("Debe adjuntar al menos un comprobante de pago (PDF) para continuar.");
+            return;
+        }
         setLoading(true);
         try {
             const ids = cuotas.map(c => c.id || c.idcuota);
@@ -58,7 +62,7 @@ export function CuotaPayMultipleModal({ cuotas, onClose, onConfirm }: CuotaPayMu
                             Pago Múltiple de Cuotas
                         </h2>
                         <p className="mt-1 text-sm text-slate-500">
-                            Confirmá el pago de {cuotas.length} cuota{cuotas.length > 1 ? 's' : ''} y adjuntá comprobantes (opcional).
+                            Confirmá el pago de {cuotas.length} cuota{cuotas.length > 1 ? 's' : ''} y adjuntá comprobantes <span className="text-red-500 font-semibold">(obligatorio)</span>.
                         </p>
                     </div>
                 </div>
@@ -103,7 +107,7 @@ export function CuotaPayMultipleModal({ cuotas, onClose, onConfirm }: CuotaPayMu
 
                 {/* Upload Area */}
                 <div className="space-y-2">
-                    <label className="text-sm font-semibold text-slate-800">Comprobantes (PDF)</label>
+                    <label className="text-sm font-semibold text-slate-800">Comprobantes (PDF) <span className="text-red-500">*</span></label>
                     <p className="text-xs text-slate-500 mb-2">Los archivos se asociarán a la primera cuota seleccionada.</p>
 
                     <div className="relative group">
@@ -165,7 +169,7 @@ export function CuotaPayMultipleModal({ cuotas, onClose, onConfirm }: CuotaPayMu
                 <button
                     className="action-button min-w-[160px]"
                     onClick={handleConfirm}
-                    disabled={loading}
+                    disabled={loading || files.length === 0}
                 >
                     {loading ? "Procesando..." : `Confirmar Pago (${cuotas.length})`}
                 </button>
