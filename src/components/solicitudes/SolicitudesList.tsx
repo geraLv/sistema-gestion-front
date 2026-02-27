@@ -113,7 +113,7 @@ export function SolicitudesList({ onCreate, onEdit, onView, onViewPlan }: Solici
                 const status = info.getValue() as string;
                 let color = "bg-slate-100 text-slate-700";
                 if (status === "Pagada") color = "bg-green-100 text-green-700";
-                if (status === "Impaga") color = "bg-red-100 text-red-700";
+                if (status === "Baja") color = "bg-red-100 text-red-700";
                 if (status === "Pendiente") color = "bg-yellow-100 text-yellow-700";
 
                 return (
@@ -171,7 +171,7 @@ export function SolicitudesList({ onCreate, onEdit, onView, onViewPlan }: Solici
             cantidadCuotas: s.cantidadcuotas,
             totalPagado: s.totalabonado || s.total_pagado || 0,
             porcentajePagado: s.porcentajepagado || 0,
-            estado: s.estado === 0 ? "Impaga" : s.estado === 2 ? "Pagada" : "Pendiente",
+            estado: s.estado === 0 ? "Baja" : s.estado === 2 ? "Pagada" : "Pendiente",
         };
     });
 
@@ -186,9 +186,9 @@ export function SolicitudesList({ onCreate, onEdit, onView, onViewPlan }: Solici
                             onSearch={setSearchTerm}
                             onFilterChange={setStatusFilter}
                             filters={[
-                                { value: "Pagada", label: "Pagada" },
-                                { value: "Impaga", label: "Impaga" },
-                                { value: "Pendiente", label: "Pendiente" },
+                                { value: "pagadas", label: "Pagadas" },
+                                { value: "bajas", label: "Bajas" },
+                                { value: "pendientes", label: "Pendientes" },
                             ]}
                             placeholder="Buscar por cliente, DNI o Nro Solicitud..."
                         />

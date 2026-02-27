@@ -27,7 +27,7 @@ export function SolicitudForm({ id, onSuccess, onCancel }: SolicitudFormProps) {
         monto: "", // Precio unitario / base
         totalapagar: "", // Precio final
         observaciones: "",
-        estado: 1, // 1 Pendiente, 0 Anulada
+        estado: 1, // 0=baja/anulada, 1=activa/pendiente, 2=pagada
     });
 
     const [error, setError] = useState<string | null>(null);
@@ -62,7 +62,7 @@ export function SolicitudForm({ id, onSuccess, onCancel }: SolicitudFormProps) {
                 monto: String(data.importe || raw.monto || ""),
                 totalapagar: String(data.totalPagado && data.totalPagado > 0 ? (data.importe * data.cantidadCuotas) : (raw.totalapagar || "")),
                 observaciones: data.observaciones || raw.observacion || "",
-                estado: (data.estado === "Activa" || data.estado === "Pendiente" || raw.estado === 1) ? 1 : 0,
+                estado: raw.estado ?? ((data.estado === "Activa" || data.estado === "Pendiente") ? 1 : 0),
             });
         }
     }, [isEdit, solicitudData]);
@@ -224,14 +224,20 @@ export function SolicitudForm({ id, onSuccess, onCancel }: SolicitudFormProps) {
                 {isEdit && (
                     <div>
                         <label className="block text-sm font-semibold mb-1">Estado</label>
-                        <select
-                            className="input-sleek w-full"
-                            value={formData.estado}
-                            onChange={e => setFormData({ ...formData, estado: Number(e.target.value) })}
-                        >
-                            <option value={1}>Pendiente</option>
-                            <option value={0}>Anulada</option>
-                        </select>
+                        {formData.estado === 2 ? (
+                            <div className="input-sleek w-full bg-green-50 text-green-700 flex items-center">
+                                ✅ Pagada
+                            </div>
+                        ) : (
+                            <select
+                                className="input-sleek w-full"
+                                value={formData.estado}
+                                onChange={e => setFormData({ ...formData, estado: Number(e.target.value) })}
+                            >
+                                <option value={1}>Activa</option>
+                                <option value={0}>Baja</option>
+                            </select>
+                        )}
                     </div>
                 )}
             </div>

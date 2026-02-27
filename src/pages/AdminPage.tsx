@@ -19,6 +19,8 @@ export default function AdminPage() {
   const [usersError, setUsersError] = useState<string | null>(null);
   const [logsError, setLogsError] = useState<string | null>(null);
   const [vendedoresError, setVendedoresError] = useState<string | null>(null);
+  const [searchVendedor, setSearchVendedor] = useState("");
+  const [filterEstadoVendedor, setFilterEstadoVendedor] = useState<"todos" | "activos" | "bajas">("todos");
 
   const [showCreate, setShowCreate] = useState(false);
   const [newUser, setNewUser] = useState({
@@ -425,7 +427,11 @@ export default function AdminPage() {
                         </td>
                         <td className="px-4 py-3 text-sm">{l.action}</td>
                         <td className="px-4 py-3 text-sm">{l.entity}</td>
-                        <td className="px-4 py-3 text-sm">{l.entity_id}</td>
+                        <td className="px-4 py-3 text-sm">
+                          {l.entity === "solicitud" && l.nrosolicitud
+                            ? `Nº ${l.nrosolicitud}`
+                            : l.entity_id}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -439,12 +445,30 @@ export default function AdminPage() {
           <div className="panel pad">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold">Vendedores</h2>
-              <button
-                className="action-button"
-                onClick={() => setShowCreateVendedor(true)}
-              >
-                Crear vendedor
-              </button>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Buscar por nombre..."
+                  className="input-sleek w-64"
+                  value={searchVendedor}
+                  onChange={(e) => setSearchVendedor(e.target.value)}
+                />
+                <select
+                  className="input-sleek"
+                  value={filterEstadoVendedor}
+                  onChange={(e) => setFilterEstadoVendedor(e.target.value as any)}
+                >
+                  <option value="todos">Todos los Estados</option>
+                  <option value="activos">Solo Activos</option>
+                  <option value="bajas">Solo Bajas</option>
+                </select>
+                <button
+                  className="action-button"
+                  onClick={() => setShowCreateVendedor(true)}
+                >
+                  Crear vendedor
+                </button>
+              </div>
             </div>
 
             {loadingVendedores ? (
@@ -468,39 +492,52 @@ export default function AdminPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {vendedores.map((v) => (
-                      <tr key={v.idvendedor} className="border-b">
-                        <td className="px-4 py-3 text-sm">
-                          {v.apellidonombre}
-                        </td>
-                        <td className="px-4 py-3 text-sm">
-                          <span
-                            className={`chip ${v.estado === 1
-                              ? "bg-green-100 text-green-800"
-                              : "bg-red-100 text-red-800"
-                              }`}
-                          >
-                            {v.estado === 1 ? "Activo" : "Baja"}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-sm text-center">
-                          <button
-                            className="text-blue-600 hover:text-blue-800 mr-3"
-                            onClick={() => setEditingVendedor({ ...v })}
-                          >
-                            Editar
-                          </button>
-                          <button
-                            className="text-red-600 hover:text-red-800"
-                            onClick={() =>
-                              handleToggleVendedorStatus(v.idvendedor, v.estado)
-                            }
-                          >
-                            {v.estado === 1 ? "Dar de baja" : "Dar de alta"}
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                    {vendedores
+                      .filter((v) =>
+                        v.apellidonombre?.toLowerCase().includes(searchVendedor.toLowerCase())
+                      )
+                      .filter((v) => {
+                        const estadoReal = v.estado !== undefined && v.estado !== null ? Number(v.estado) : 1;
+                        if (filterEstadoVendedor === "activos") return estadoReal === 1;
+                        if (filterEstadoVendedor === "bajas") return estadoReal === 0;
+                        return true;
+                      })
+                      .map((v) => {
+                        const estadoReal = v.estado !== undefined && v.estado !== null ? Number(v.estado) : 1;
+                        return (
+                          <tr key={v.idvendedor} className="border-b">
+                            <td className="px-4 py-3 text-sm">
+                              {v.apellidonombre}
+                            </td>
+                            <td className="px-4 py-3 text-sm">
+                              <span
+                                className={`chip ${estadoReal === 1
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-red-100 text-red-800"
+                                  }`}
+                              >
+                                {estadoReal === 1 ? "Activo" : "Baja"}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-sm text-center">
+                              <button
+                                className="text-blue-600 hover:text-blue-800 mr-3"
+                                onClick={() => setEditingVendedor({ ...v })}
+                              >
+                                Editar
+                              </button>
+                              <button
+                                className="text-red-600 hover:text-red-800"
+                                onClick={() =>
+                                  handleToggleVendedorStatus(v.idvendedor, estadoReal)
+                                }
+                              >
+                                {estadoReal === 1 ? "Dar de baja" : "Dar de alta"}
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
                   </tbody>
                 </table>
               </div>
