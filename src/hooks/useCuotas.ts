@@ -28,7 +28,7 @@ export const useCuota = (id: number) => {
 export const usePagarCuota = () => {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (id: number) => cuotasApi.pagar(id),
+        mutationFn: ({ id, formapago }: { id: number; formapago: string }) => cuotasApi.pagar(id, formapago),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["cuotas"] });
             queryClient.invalidateQueries({ queryKey: ["cuota"] });
@@ -39,7 +39,7 @@ export const usePagarCuota = () => {
 export const usePagarMultiplesCuotas = () => {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (ids: number[]) => cuotasApi.pagarMultiples(ids),
+        mutationFn: ({ ids, formapago }: { ids: number[]; formapago: string }) => cuotasApi.pagarMultiples(ids, formapago),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["cuotas"] });
         },

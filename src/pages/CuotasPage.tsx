@@ -76,12 +76,16 @@ export default function CuotasPage() {
 
   const handleSaveEdit = async (
     id: number,
-    payload: { importe?: number; fechaPago?: string },
+    payload: { importe?: number; fechaPago?: string; formapago?: string },
   ) => {
     try {
       if (payload.fechaPago) {
         await cuotasApi.updateFechaPago(id, payload.fechaPago);
-      } else if (payload.importe !== undefined) {
+      }
+      if (payload.formapago) {
+        await cuotasApi.updateFormaPago(id, payload.formapago);
+      }
+      if (payload.importe !== undefined) {
         await cuotasApi.updateImporte(id, payload.importe);
       }
       setEditCuota(null);
@@ -91,9 +95,9 @@ export default function CuotasPage() {
     }
   };
 
-  const handleConfirmPayCuota = async (id: number, file: File | null) => {
+  const handleConfirmPayCuota = async (id: number, file: File | null, formapago: string) => {
     try {
-      await cuotasApi.pagar(id);
+      await cuotasApi.pagar(id, formapago);
       if (file) {
         await cuotasApi.uploadComprobante(id, file); // Fixed method name assumption which was subirComprobante
       }

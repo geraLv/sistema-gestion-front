@@ -6,11 +6,12 @@ import { formatDateEs } from "../../lib/date";
 interface CuotaPayMultipleModalProps {
     cuotas: any[];
     onClose: () => void;
-    onConfirm: (ids: number[], files: File[]) => Promise<void>;
+    onConfirm: (ids: number[], files: File[], formapago: string) => Promise<void>;
 }
 
 export function CuotaPayMultipleModal({ cuotas, onClose, onConfirm }: CuotaPayMultipleModalProps) {
     const [files, setFiles] = useState<File[]>([]);
+    const [formaPago, setFormaPago] = useState<string>("Efectivo");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -31,14 +32,14 @@ export function CuotaPayMultipleModal({ cuotas, onClose, onConfirm }: CuotaPayMu
 
     const handleConfirm = async () => {
         setError(null);
-        if (files.length === 0) {
-            setError("Debe adjuntar al menos un comprobante de pago (PDF) para continuar.");
+        if (formaPago === "Transferencia" && files.length === 0) {
+            setError("Debe adjuntar al menos un comprobante de pago (PDF) para continuar con transferencia.");
             return;
         }
         setLoading(true);
         try {
             const ids = cuotas.map(c => c.id || c.idcuota);
-            await onConfirm(ids, files);
+            await onConfirm(ids, files, formaPago);
             onClose();
         } catch (err: any) {
             console.error("Payment error:", err);
@@ -85,29 +86,44 @@ export function CuotaPayMultipleModal({ cuotas, onClose, onConfirm }: CuotaPayMu
                         <span className="text-sm font-semibold text-slate-700">Cuotas a pagar</span>
                         <span className="text-xs font-medium text-slate-500">{cuotas.length} cuota{cuotas.length > 1 ? 's' : ''}</span>
                     </div>
-                    <div className="max-h-40 overflow-y-auto space-y-2">
-                        {cuotas.map((cuota, idx) => (
-                            <div key={idx} className="flex items-center justify-between text-sm bg-white rounded-lg p-2 border border-slate-100">
-                                <div className="flex items-center gap-2">
-                                    <span className="font-mono text-xs text-slate-500">#{cuota.nroCuota || cuota.nrocuota}</span>
-                                    <span className="text-slate-600">Sol. {cuota.nroSolicitud || cuota.relasolicitud}</span>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    <span className="text-xs text-slate-500">{formatDate(cuota.vencimiento)}</span>
-                                    <span className="font-semibold text-slate-900">${cuota.importe}</span>
-                                </div>
+
+                    <div className="space-y-4 mb-6">
+                        {cuotas.map((cuota, index) => (
+                            <div key={cuota.id || cuota.idcuota || index} className="flex justify-between text-sm py-2 border-b border-slate-100 last:border-0">
+                                <span className="text-slate-600">
+                                    Cuota {cuota.nrocuota} - Venc: {formatDate(cuota.vencimiento)}
+                                </span>
+                                <span className="font-medium text-slate-900">
+                                    ${(cuota.importe || 0).toLocaleString()}
+                                </span>
                             </div>
                         ))}
                     </div>
-                    <div className="mt-3 pt-3 border-t border-slate-200 flex items-center justify-between">
-                        <span className="text-sm font-semibold text-slate-900">Total a pagar</span>
-                        <span className="text-lg font-bold text-slate-900">${totalAmount.toFixed(2)}</span>
+
+                    <div className="flex justify-between items-center py-3 border-t border-slate-200 mt-4">
+                        <span className="font-semibold text-slate-700">Total a Pagar:</span>
+                        <span className="text-xl font-bold text-blue-600">${totalAmount.toLocaleString()}</span>
                     </div>
+                </div>
+
+                <div className="space-y-2 mb-6">
+                    <label className="text-sm font-semibold text-slate-800">Forma de Pago <span className="text-red-500">*</span></label>
+                    <select
+                        value={formaPago}
+                        onChange={(e) => setFormaPago(e.target.value)}
+                        className="w-full text-sm rounded-xl border border-slate-300 bg-white px-3 py-2.5 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    >
+                        <option value="Efectivo">Efectivo</option>
+                        <option value="Cobrador">Cobrador</option>
+                        <option value="Transferencia">Transferencia</option>
+                    </select>
                 </div>
 
                 {/* Upload Area */}
                 <div className="space-y-2">
-                    <label className="text-sm font-semibold text-slate-800">Comprobantes (PDF) <span className="text-red-500">*</span></label>
+                    <label className="text-sm font-semibold text-slate-800">
+                        Comprobantes (Opcional) {formaPago === "Transferencia" && <span className="text-red-500">*</span>}
+                    </label>
                     <p className="text-xs text-slate-500 mb-2">Los archivos se asociarán a la primera cuota seleccionada.</p>
 
                     <div className="relative group">
@@ -169,7 +185,7 @@ export function CuotaPayMultipleModal({ cuotas, onClose, onConfirm }: CuotaPayMu
                 <button
                     className="action-button min-w-[160px]"
                     onClick={handleConfirm}
-                    disabled={loading || files.length === 0}
+                    disabled={loading || (formaPago === "Transferencia" && files.length === 0)}
                 >
                     {loading ? "Procesando..." : `Confirmar Pago (${cuotas.length})`}
                 </button>

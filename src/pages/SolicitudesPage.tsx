@@ -162,11 +162,15 @@ export default function SolicitudesPage() {
 
     const handleSaveEditCuota = async (
         id: number,
-        payload: { importe?: number; fechaPago?: string },
+        payload: { importe?: number; fechaPago?: string; formapago?: string },
     ) => {
         if (payload.fechaPago) {
             await cuotasApi.updateFechaPago(id, payload.fechaPago);
-        } else if (payload.importe !== undefined) {
+        }
+        if (payload.formapago) {
+            await cuotasApi.updateFormaPago(id, payload.formapago);
+        }
+        if (payload.importe !== undefined) {
             await cuotasApi.updateImporte(id, payload.importe);
         }
         setEditCuota(null);
@@ -175,8 +179,8 @@ export default function SolicitudesPage() {
         if (viewData) handleViewPlan(viewData.idsolicitud || viewData.id);
     };
 
-    const handleConfirmPayCuota = async (id: number, file: File | null) => {
-        await cuotasApi.pagar(id);
+    const handleConfirmPayCuota = async (id: number, file: File | null, formapago: string) => {
+        await cuotasApi.pagar(id, formapago);
         if (file) {
             const formData = new FormData();
             formData.append("archivo", file);

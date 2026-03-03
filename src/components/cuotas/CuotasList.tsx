@@ -19,6 +19,7 @@ export type CuotaColumn = {
     vencimiento: string;
     importe: number;
     estado: number; // 0 impaga, 1 parcial, 2 pagada
+    formapago?: string | null;
     fechaPago?: string;
     isVencida?: boolean;
 };
@@ -84,9 +85,9 @@ export function CuotasList({ onView, onEdit, onPay, filtro, idsolicitud, isModal
         setShowPayMultipleModal(true);
     };
 
-    const handleConfirmMultiplePayment = async (ids: number[], files: File[]) => {
+    const handleConfirmMultiplePayment = async (ids: number[], files: File[], formapago: string) => {
         // Pay all quotas
-        await pagarMultiplesMutation.mutateAsync(ids);
+        await pagarMultiplesMutation.mutateAsync({ ids, formapago });
 
         // Upload files to first quota if any
         if (files.length > 0 && ids.length > 0) {
@@ -222,6 +223,20 @@ export function CuotasList({ onView, onEdit, onPay, filtro, idsolicitud, isModal
             },
         },
         {
+            accessorKey: "formapago",
+            header: "Tipo de Pago",
+            cell: (info) => {
+                const fp = info.getValue() as string | null | undefined;
+
+                if (info.row.original.estado === 2 && !fp) {
+                    return <span className="text-sm font-medium text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full">Sin definir</span>;
+                }
+
+                if (!fp) return <span className="text-slate-400 text-sm">-</span>;
+                return <span className="text-sm font-medium text-slate-700">{fp}</span>;
+            },
+        },
+        {
             id: "actions",
             header: "Acciones",
             cell: (info) => {
@@ -307,6 +322,7 @@ export function CuotasList({ onView, onEdit, onPay, filtro, idsolicitud, isModal
         vencimiento: c.vencimiento,
         importe: c.importe,
         estado: c.estado,
+        formapago: c.formapago,
         fechaPago: c.fecha,
         raw: c
     }));

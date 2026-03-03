@@ -6,27 +6,30 @@ import { formatDateInput } from "../../lib/date";
 interface CuotaEditModalProps {
     cuota: any;
     onClose: () => void;
-    onSave: (id: number, payload: { importe?: number; fechaPago?: string }) => Promise<void>;
+    onSave: (id: number, payload: { importe?: number; fechaPago?: string; formapago?: string }) => Promise<void>;
 }
 
 export function CuotaEditModal({ cuota, onClose, onSave }: CuotaEditModalProps) {
     const [importe, setImporte] = useState<number | string>("");
     const [fechaPago, setFechaPago] = useState<string>("");
+    const [formaPago, setFormaPago] = useState<string>("Efectivo");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const isPagada = Number(cuota?.estado) === 2;
+    const isFormaPagoMissing = isPagada && !cuota?.formapago; // if it was paid but no payment method is defined
 
     useEffect(() => {
         if (cuota) {
             setImporte(cuota.importe);
             setFechaPago(formatDateInput(cuota.fecha));
+            if (cuota.formapago) setFormaPago(cuota.formapago);
         }
     }, [cuota]);
 
     const handleSubmit = async () => {
         setError(null);
         if (isPagada) {
-            if (!fechaPago) {
+            if (!fechaPago && !isFormaPagoMissing) {
                 setError("Debe seleccionar la fecha de pago.");
                 return;
             }
@@ -40,7 +43,11 @@ export function CuotaEditModal({ cuota, onClose, onSave }: CuotaEditModalProps) 
         setLoading(true);
         try {
             if (isPagada) {
-                await onSave(cuota.idcuota || cuota.id, { fechaPago });
+                const payload: any = {};
+                if (fechaPago) payload.fechaPago = fechaPago;
+                if (isFormaPagoMissing && formaPago) payload.formapago = formaPago;
+
+                await onSave(cuota.idcuota || cuota.id, payload);
             } else {
                 await onSave(cuota.idcuota || cuota.id, { importe: Number(importe) });
             }
@@ -99,15 +106,31 @@ export function CuotaEditModal({ cuota, onClose, onSave }: CuotaEditModalProps) 
                 </div>
 
                 {isPagada ? (
-                    <div>
-                        <label className="block text-sm font-semibold text-slate-800 mb-2">Fecha de pago</label>
-                        <input
-                            type="date"
-                            className="input-sleek w-full text-lg"
-                            value={fechaPago}
-                            onChange={(e) => setFechaPago(e.target.value)}
-                            autoFocus
-                        />
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-semibold text-slate-800 mb-2">Fecha de pago</label>
+                            <input
+                                type="date"
+                                className="input-sleek w-full text-lg"
+                                value={fechaPago}
+                                onChange={(e) => setFechaPago(e.target.value)}
+                                autoFocus
+                            />
+                        </div>
+                        {isFormaPagoMissing && (
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-800 mb-2">Forma de Pago</label>
+                                <select
+                                    value={formaPago}
+                                    onChange={(e) => setFormaPago(e.target.value)}
+                                    className="input-sleek w-full text-lg"
+                                >
+                                    <option value="Efectivo">Efectivo</option>
+                                    <option value="Cobrador">Cobrador</option>
+                                    <option value="Transferencia">Transferencia</option>
+                                </select>
+                            </div>
+                        )}
                     </div>
                 ) : (
                     <div>

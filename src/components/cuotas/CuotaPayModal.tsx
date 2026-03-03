@@ -7,11 +7,12 @@ interface CuotaPayModalProps {
     cuota: any;
     comprobantesPrevios?: any[];
     onClose: () => void;
-    onConfirm: (id: number, file: File | null) => Promise<void>;
+    onConfirm: (id: number, file: File | null, formapago: string) => Promise<void>;
 }
 
 export function CuotaPayModal({ cuota, comprobantesPrevios = [], onClose, onConfirm }: CuotaPayModalProps) {
     const [file, setFile] = useState<File | null>(null);
+    const [formaPago, setFormaPago] = useState<string>("Efectivo");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -21,13 +22,13 @@ export function CuotaPayModal({ cuota, comprobantesPrevios = [], onClose, onConf
 
     const handleConfirm = async () => {
         setError(null);
-        if (!file) {
-            setError("Debe adjuntar un comprobante de pago (PDF) para continuar.");
+        if (formaPago === "Transferencia" && !file) {
+            setError("Debe adjuntar un comprobante de pago (PDF) para continuar con transferencia.");
             return;
         }
         setLoading(true);
         try {
-            await onConfirm(cuota.idcuota || cuota.id, file);
+            await onConfirm(cuota.idcuota || cuota.id, file, formaPago);
             onClose();
         } catch (err: any) {
             console.error("Payment error:", err);
@@ -87,9 +88,24 @@ export function CuotaPayModal({ cuota, comprobantesPrevios = [], onClose, onConf
                     </div>
                 </div>
 
+                <div className="space-y-2 mb-6">
+                    <label className="text-sm font-semibold text-slate-800">Forma de Pago <span className="text-red-500">*</span></label>
+                    <select
+                        value={formaPago}
+                        onChange={(e) => setFormaPago(e.target.value)}
+                        className="w-full text-sm rounded-xl border border-slate-300 bg-white px-3 py-2.5 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    >
+                        <option value="Efectivo">Efectivo</option>
+                        <option value="Cobrador">Cobrador</option>
+                        <option value="Transferencia">Transferencia</option>
+                    </select>
+                </div>
+
                 {/* Upload Area */}
                 <div className="space-y-2">
-                    <label className="text-sm font-semibold text-slate-800">Comprobante (PDF) <span className="text-red-500">*</span></label>
+                    <label className="text-sm font-semibold text-slate-800">
+                        Comprobante (PDF) {formaPago === "Transferencia" && <span className="text-red-500">*</span>}
+                    </label>
                     <div className="relative group">
                         <input
                             type="file"
@@ -161,7 +177,7 @@ export function CuotaPayModal({ cuota, comprobantesPrevios = [], onClose, onConf
                 <button
                     className="action-button min-w-[140px]"
                     onClick={handleConfirm}
-                    disabled={loading || !file}
+                    disabled={loading || (formaPago === "Transferencia" && !file)}
                 >
                     {loading ? "Procesando..." : "Confirmar Pago"}
                 </button>

@@ -262,14 +262,15 @@ export const cuotasApi = {
     return response.data.data || { cuotas: [], resumen: null };
   },
 
-  pagar: async (idcuota: number) => {
-    const response = await apiClient.post("/cuotas/pagar", { idcuota });
+  pagar: async (idcuota: number, formapago: string) => {
+    const response = await apiClient.post("/cuotas/pagar", { idcuota, formapago });
     return response.data.data || response.data;
   },
 
-  pagarMultiples: async (idcuotas: number[]) => {
+  pagarMultiples: async (idcuotas: number[], formapago: string) => {
     const response = await apiClient.post("/cuotas/pagar-multiples", {
       idcuotas,
+      formapago,
     });
     return response.data.data || response.data;
   },
@@ -282,6 +283,10 @@ export const cuotasApi = {
     const response = await apiClient.put(`/cuotas/${id}/fecha-pago`, {
       fechaPago,
     });
+    return response.data;
+  },
+  updateFormaPago: async (id: number, formapago: string) => {
+    const response = await apiClient.put(`/cuotas/${id}/formapago`, { formapago });
     return response.data.data || response.data;
   },
 
