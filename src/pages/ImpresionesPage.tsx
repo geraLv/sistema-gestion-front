@@ -28,6 +28,7 @@ export default function ImpresionesPage() {
   const [mesRecibos, setMesRecibos] = useState("");
   const [localidadId, setLocalidadId] = useState("");
   const [mesLocalidad, setMesLocalidad] = useState("");
+  const [sinFecha, setSinFecha] = useState(false);
 
   const [estadoXlsx, setEstadoXlsx] = useState("impagas");
   const [mesXlsx, setMesXlsx] = useState("");
@@ -76,8 +77,8 @@ export default function ImpresionesPage() {
     setError(null);
     setLoading(true);
     try {
-      const blob = await reportesApi.reciboCuota(id);
-      openBlob(blob, `recibo-cuota-${id}.pdf`, true);
+      const blob = await reportesApi.reciboCuota(id, sinFecha);
+      openBlob(blob, `recibo-cuota-${id}.pdf`);
     } catch (err) {
       console.error(err);
       setError("No se pudo generar el recibo de cuota.");
@@ -93,9 +94,10 @@ export default function ImpresionesPage() {
       const blob = await reportesApi.recibosMes(
         buildMonthValue(mesRecibos),
         localidadId ? Number(localidadId) : undefined,
+        sinFecha,
       );
       const mesLabel = mesRecibos || "actual";
-      openBlob(blob, `recibos-${mesLabel}.pdf`, true);
+      openBlob(blob, `recibos-${mesLabel}.pdf`);
     } catch (err) {
       console.error(err);
       setError("No se pudo generar el PDF del mes.");
@@ -110,9 +112,9 @@ export default function ImpresionesPage() {
     try {
       const loc = localidadId ? Number(localidadId) : undefined;
       const blob = loc
-        ? await reportesApi.recibosMesPosteriorPorLocalidad(loc)
-        : await reportesApi.recibosMesPosterior();
-      openBlob(blob, "recibos-mes-posterior.pdf", true);
+        ? await reportesApi.recibosMesPosteriorPorLocalidad(loc, sinFecha)
+        : await reportesApi.recibosMesPosterior(sinFecha);
+      openBlob(blob, "recibos-mes-posterior.pdf");
     } catch (err) {
       console.error(err);
       setError("No se pudo generar el PDF del mes posterior.");
@@ -133,9 +135,10 @@ export default function ImpresionesPage() {
       const blob = await reportesApi.recibosMesPorLocalidad(
         loc,
         buildMonthValue(mesLocalidad),
+        sinFecha,
       );
       const mesLabel = mesLocalidad || "actual";
-      openBlob(blob, `recibos-${mesLabel}-loc-${loc}.pdf`, true);
+      openBlob(blob, `recibos-${mesLabel}-loc-${loc}.pdf`);
     } catch (err) {
       console.error(err);
       setError("No se pudo generar el PDF por localidad.");
@@ -198,6 +201,16 @@ export default function ImpresionesPage() {
                 placeholder="Ej: 125"
               />
             </div>
+            <div className="legacy-field">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={sinFecha}
+                  onChange={(e) => setSinFecha(e.target.checked)}
+                />{" "}
+                Sin fecha
+              </label>
+            </div>
             <div className="legacy-actions">
               <button
                 className="legacy-button primary"
@@ -239,6 +252,16 @@ export default function ImpresionesPage() {
                   </option>
                 ))}
               </select>
+            </div>
+            <div className="legacy-field">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={sinFecha}
+                  onChange={(e) => setSinFecha(e.target.checked)}
+                />{" "}
+                Sin fecha
+              </label>
             </div>
             <div className="legacy-actions">
               <button
@@ -285,6 +308,16 @@ export default function ImpresionesPage() {
                 value={toMonthInput(mesLocalidad)}
                 onChange={(e) => setMesLocalidad(e.target.value)}
               />
+            </div>
+            <div className="legacy-field">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={sinFecha}
+                  onChange={(e) => setSinFecha(e.target.checked)}
+                />{" "}
+                Sin fecha
+              </label>
             </div>
             <div className="legacy-actions">
               <button

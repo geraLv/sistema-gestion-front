@@ -169,9 +169,7 @@ export default function Header() {
             </nav>
 
             <div className="px-6 pb-8">
-              <div className="mt-4 text-[11px] text-gray-400">
-                <div>© Desarrollado por Sofgen Formosa</div>
-              </div>
+
             </div>
           </div>
         </div>
@@ -351,10 +349,7 @@ export default function Header() {
           {/* mucho espacio antes de la línea verde */}
           <div className="h-16" />
           <div className="h-[2px] w-full bg-green-500" />
-          <div className="mt-10 text-[11px] text-gray-400 leading-6">
-            <div>© Desarrollado por Sofgen Formosa</div>
-            <div>(370)4-053205</div>
-          </div>
+
         </div>
       </aside>
     </>

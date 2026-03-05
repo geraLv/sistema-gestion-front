@@ -502,10 +502,10 @@ export const vendedoresAdminApi = {
 
 // Reportes
 export const reportesApi = {
-  reciboCuota: async (idcuota: number) => {
+  reciboCuota: async (idcuota: number, sinFecha?: boolean) => {
     const response = await apiClient.post(
       "/reportes/recibos/cuota",
-      { idcuota },
+      { idcuota, sinFecha: sinFecha || false },
       { responseType: "blob" },
     );
     return response.data as Blob;
@@ -519,38 +519,39 @@ export const reportesApi = {
     return response.data as Blob;
   },
 
-  recibosMes: async (mes?: string, localidadId?: number) => {
+  recibosMes: async (mes?: string, localidadId?: number, sinFecha?: boolean) => {
     const response = await apiClient.get("/reportes/recibos/mes", {
-      params: { mes: mes || undefined, localidadId: localidadId || undefined },
+      params: { mes: mes || undefined, localidadId: localidadId || undefined, sinFecha: sinFecha ? "true" : undefined },
       responseType: "blob",
     });
     console.log("recibos-mes", response);
     return response.data as Blob;
   },
 
-  recibosMesPosterior: async () => {
+  recibosMesPosterior: async (sinFecha?: boolean) => {
     const response = await apiClient.get("/reportes/recibos/mes-posterior", {
+      params: { sinFecha: sinFecha ? "true" : undefined },
       responseType: "blob",
     });
     return response.data as Blob;
   },
 
-  recibosMesPorLocalidad: async (localidadId: number, mes?: string) => {
+  recibosMesPorLocalidad: async (localidadId: number, mes?: string, sinFecha?: boolean) => {
     const response = await apiClient.get(
       "/reportes/recibos/mes-por-localidad",
       {
-        params: { localidadId, mes: mes || undefined },
+        params: { localidadId, mes: mes || undefined, sinFecha: sinFecha ? "true" : undefined },
         responseType: "blob",
       },
     );
     return response.data as Blob;
   },
 
-  recibosMesPosteriorPorLocalidad: async (localidadId: number) => {
+  recibosMesPosteriorPorLocalidad: async (localidadId: number, sinFecha?: boolean) => {
     const response = await apiClient.get(
       "/reportes/recibos/mes-posterior-por-localidad",
       {
-        params: { localidadId },
+        params: { localidadId, sinFecha: sinFecha ? "true" : undefined },
         responseType: "blob",
       },
     );
