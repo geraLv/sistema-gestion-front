@@ -82,9 +82,7 @@ function App() {
           path="/clientes"
           element={
             <ProtectedRoute>
-              <RoleRoute role="admin">
-                <ClientesPage />
-              </RoleRoute>
+              <ClientesPage />
             </ProtectedRoute>
           }
         />

@@ -29,7 +29,7 @@ export default function ClientesPage() {
           <h1 className="text-3xl font-bold">Clientes</h1>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 min-h-[500px]">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6 min-h-[500px]">
           {viewMode === "list" && (
             <ClientesList onEdit={handleEdit} onCreate={handleCreate} />
           )}

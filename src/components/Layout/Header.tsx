@@ -56,8 +56,7 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Padding for fixed header on mobile */}
-      <div className="h-16 md:hidden" />
+      {/* Fixed header padding moved to Layout */}
 
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
@@ -106,12 +105,6 @@ export default function Header() {
                     </li>
 
                     <li className="border-b border-gray-200/80">
-                      <NavLink to="/clientes" className={navItemClass} onClick={() => setMobileMenuOpen(false)}>
-                        CLIENTES
-                      </NavLink>
-                    </li>
-
-                    <li className="border-b border-gray-200/80">
                       <NavLink to="/solicitudes" className={navItemClass} onClick={() => setMobileMenuOpen(false)}>
                         SOLICITUDES
                       </NavLink>
@@ -136,12 +129,20 @@ export default function Header() {
                     </li>
                   </>
                 ) : (
-                  <li className="border-b border-gray-200/80">
-                    <NavLink to="/mis-ventas" className={navItemClass} onClick={() => setMobileMenuOpen(false)}>
-                      MIS VENTAS
-                    </NavLink>
-                  </li>
+                  <>
+                    <li className="border-b border-gray-200/80">
+                      <NavLink to="/mis-ventas" className={navItemClass} onClick={() => setMobileMenuOpen(false)}>
+                        MIS VENTAS
+                      </NavLink>
+                    </li>
+                  </>
                 )}
+
+                <li className="border-b border-gray-200/80">
+                  <NavLink to="/clientes" className={navItemClass} onClick={() => setMobileMenuOpen(false)}>
+                    CLIENTES
+                  </NavLink>
+                </li>
 
                 <li className="px-6">
                   <div className="h-6" />
@@ -214,12 +215,6 @@ export default function Header() {
                 </li>
 
                 <li className="border-b border-gray-200/80">
-                  <NavLink to="/clientes" className={navItemClass}>
-                    CLIENTES
-                  </NavLink>
-                </li>
-
-                <li className="border-b border-gray-200/80">
                   <NavLink to="/solicitudes" className={navItemClass}>
                     SOLICITUDES
                   </NavLink>
@@ -244,12 +239,20 @@ export default function Header() {
                 </li>
               </>
             ) : (
-              <li className="border-b border-gray-200/80">
-                <NavLink to="/mis-ventas" className={navItemClass}>
-                  MIS VENTAS
-                </NavLink>
-              </li>
+              <>
+                <li className="border-b border-gray-200/80">
+                  <NavLink to="/mis-ventas" className={navItemClass}>
+                    MIS VENTAS
+                  </NavLink>
+                </li>
+              </>
             )}
+
+            <li className="border-b border-gray-200/80">
+              <NavLink to="/clientes" className={navItemClass}>
+                CLIENTES
+              </NavLink>
+            </li>
 
             {/* “espacio” + línea tenue antes de Configuraciones (como la imagen) */}
             <li className="px-6">

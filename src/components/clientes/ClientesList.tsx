@@ -109,7 +109,7 @@ export function ClientesList({ onEdit, onCreate }: ClientesListProps) {
 
     return (
         <div className="h-full">
-            <div className="flex w-11/12 justify-center items-center mb-6 mx-auto">
+            <div className="flex w-full justify-center items-center mb-6">
                 <div className="flex flex-col md:flex-row w-full justify-between items-center gap-4">
                     <div className="w-full md:flex-1">
                         <FilterBar

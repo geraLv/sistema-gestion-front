@@ -151,12 +151,12 @@ export function DataTable<TData, TValue>({
             </div>
 
             {/* Pagination Controls */}
-            <div className="flex items-center justify-between px-2">
-                <div className="flex-1 text-sm text-muted-foreground">
+            <div className="flex flex-col sm:flex-row items-center justify-between px-2 gap-4">
+                <div className="flex-1 text-sm text-muted-foreground text-center sm:text-left">
                     {table.getFilteredSelectedRowModel().rows.length} de{" "}
                     {table.getFilteredRowModel().rows.length} fila(s) seleccionada(s).
                 </div>
-                <div className="flex items-center space-x-6 lg:space-x-8">
+                <div className="flex flex-wrap items-center justify-center space-x-4 lg:space-x-8 gap-y-2">
                     <div className="flex items-center space-x-2">
                         <p className="text-sm font-medium">Filas por pág</p>
                         <select
