@@ -15,8 +15,9 @@ export function SolicitudForm({ id, onSuccess, onCancel }: SolicitudFormProps) {
     const createMutation = useCreateSolicitud();
     const updateMutation = useUpdateSolicitud();
 
-    const [clientes, setClientes] = useState<any[]>([]);
     const [productos, setProductos] = useState<any[]>([]);
+    // selectedClienteOption holds the currently selected client for display in edit mode
+    const [selectedClienteOption, setSelectedClienteOption] = useState<{ value: number; label: string } | null>(null);
 
     // Manual form state (to match existing style but cleaner)
     const [formData, setFormData] = useState({
@@ -33,29 +34,36 @@ export function SolicitudForm({ id, onSuccess, onCancel }: SolicitudFormProps) {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        // Load dependencies
+        // Load products only (clients are searched on demand)
         const loadDeps = async () => {
             try {
-                const [c, p] = await Promise.all([
-                    clientesApi.getAll(),
-                    productosApi.getAll(),
-                ]);
-                setClientes((c as any).data || c || []);
+                const p = await productosApi.getAll();
                 setProductos((p as any).data || p || []);
             } catch (err) {
-                console.error("Error loading dependencies", err);
+                console.error("Error loading products", err);
             }
         };
         loadDeps();
     }, []);
+
+    // Async client search function for SearchableSelect
+    const handleClientSearch = async (term: string) => {
+        try {
+            const results: any[] = await clientesApi.search(term);
+            return results.map((c: any) => ({ value: c.idcliente ?? c.id, label: c.appynom ?? c.nombre ?? "" }));
+        } catch {
+            return [];
+        }
+    };
 
     useEffect(() => {
         if (isEdit && solicitudData) {
             // Populate form
             const data = solicitudData;
             const raw = data as any; // Cast to access potential raw fields not in type
+            const clienteId = String(data.clienteId || data.cliente?.id || raw.relacliente || "");
             setFormData({
-                clienteId: String(data.clienteId || data.cliente?.id || raw.relacliente || ""),
+                clienteId,
                 vendedorId: String(raw.vendedorId || raw.vendedor?.id || raw.relavendedor || ""),
                 productoId: String(data.productoId || data.producto?.id || raw.relaproducto || raw.idproducto || ""),
                 cantidadCuotas: String(data.cantidadCuotas || raw.cantidadcuotas || ""),
@@ -64,6 +72,12 @@ export function SolicitudForm({ id, onSuccess, onCancel }: SolicitudFormProps) {
                 observaciones: data.observaciones || raw.observacion || "",
                 estado: raw.estado ?? ((data.estado === "Activa" || data.estado === "Pendiente") ? 1 : 0),
             });
+            // Pre-load client name for display in the selector
+            if (clienteId) {
+                clientesApi.getById(Number(clienteId)).then((c: any) => {
+                    if (c) setSelectedClienteOption({ value: c.idcliente ?? c.id, label: c.appynom ?? c.nombre ?? "" });
+                }).catch(() => { });
+            }
         }
     }, [isEdit, solicitudData]);
 
@@ -143,8 +157,6 @@ export function SolicitudForm({ id, onSuccess, onCancel }: SolicitudFormProps) {
         return <div className="p-8 text-center text-slate-500">Cargando datos...</div>;
     }
 
-    const clienteOptions = clientes.map(c => ({ value: c.idcliente, label: c.appynom }));
-
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
@@ -158,10 +170,12 @@ export function SolicitudForm({ id, onSuccess, onCancel }: SolicitudFormProps) {
                 <div>
                     <SearchableSelect
                         label="Cliente *"
-                        options={clienteOptions}
+                        options={selectedClienteOption ? [selectedClienteOption] : []}
                         value={formData.clienteId}
                         onChange={(val) => setFormData({ ...formData, clienteId: String(val) })}
-                        placeholder="Buscar cliente..."
+                        placeholder="Buscar cliente (nombre o DNI)..."
+                        onSearch={handleClientSearch}
+                        minSearchLength={2}
                     />
                 </div>
 

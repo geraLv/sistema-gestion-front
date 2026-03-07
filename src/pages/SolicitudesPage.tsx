@@ -278,7 +278,7 @@ export default function SolicitudesPage() {
                                     <div className="p-4 rounded-xl bg-white border border-slate-100 shadow-sm">
                                         <div className="text-xs font-medium text-slate-500 uppercase tracking-wider">Total Financiado</div>
                                         <div className="text-2xl font-bold text-slate-900 mt-1">
-                                            ${(planResumen?.montoTotal || 0).toLocaleString()}
+                                            ${(viewData?.totalapagar || planResumen?.montoTotal || 0).toLocaleString()}
                                         </div>
                                     </div>
                                     <div className="p-4 rounded-xl bg-white border border-slate-100 shadow-sm">
@@ -290,7 +290,7 @@ export default function SolicitudesPage() {
                                     <div className="p-4 rounded-xl bg-white border border-slate-100 shadow-sm">
                                         <div className="text-xs font-medium text-slate-500 uppercase tracking-wider">Saldo Restante</div>
                                         <div className="text-2xl font-bold text-slate-900 mt-1">
-                                            ${(planResumen?.montoImpago || 0).toLocaleString()}
+                                            ${((viewData?.totalapagar || planResumen?.montoTotal || 0) - (planResumen?.montoPagado || 0)).toLocaleString()}
                                         </div>
                                     </div>
                                     <div className="p-4 rounded-xl bg-white border border-slate-100 shadow-sm">
