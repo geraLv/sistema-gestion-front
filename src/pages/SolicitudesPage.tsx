@@ -1,18 +1,19 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import Layout from "../components/Layout";
 import { SolicitudesList, type SolicitudColumn } from "../components/solicitudes/SolicitudesList";
 import { SolicitudForm } from "../components/solicitudes/SolicitudForm";
 import { SolicitudAddCuotasModal } from "../components/solicitudes/SolicitudAddCuotasModal";
 import { SolicitudFechaModal } from "../components/solicitudes/SolicitudFechaModal";
-import { cuotasApi, solicitudesApi, reportesApi } from "../api/endpoints";
+import { cuotasApi, solicitudesApi, reportesApi, contratosApi } from "../api/endpoints";
 import { Modal } from "../components/ui/Modal";
+import { ContratoPreviewModal } from "../components/solicitudes/ContratoPreviewModal";
 import { useAddCuotas } from "../hooks/useSolicitudes";
 import { CuotaDetailModal } from "../components/cuotas/CuotaDetailModal";
 import { CuotaEditModal } from "../components/cuotas/CuotaEditModal";
 import { CuotaPayModal } from "../components/cuotas/CuotaPayModal";
 import { CuotasList } from "../components/cuotas/CuotasList";
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, Info, X } from "lucide-react";
 
 export default function SolicitudesPage() {
     const [viewMode, setViewMode] = useState<"list" | "create" | "edit">("list");
@@ -43,6 +44,14 @@ export default function SolicitudesPage() {
     const [viewLoading, setViewLoading] = useState(false);
     const [viewError, setViewError] = useState<string | null>(null);
     const [reciboLoading, setReciboLoading] = useState(false);
+    const [contratoLink, setContratoLink] = useState<string | null>(null);
+    const [showPreview, setShowPreview] = useState(false);
+    const [contratoLoading, setContratoLoading] = useState(false);
+
+    // Manual Upload state
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [uploadingContrato, setUploadingContrato] = useState(false);
+    const [selectedManualFile, setSelectedManualFile] = useState<File | null>(null);
 
     const addCuotasMutation = useAddCuotas();
     const queryClient = useQueryClient();
@@ -64,6 +73,7 @@ export default function SolicitudesPage() {
 
     const handleView = async (id: number) => {
         try {
+            setContratoLink(null);
             const data: any = await solicitudesApi.getById(id);
             setViewData(data);
             setShowView(true);
@@ -212,6 +222,57 @@ export default function SolicitudesPage() {
         }
     };
 
+    const handleOpenPreview = () => {
+        if (!viewData) return;
+        setShowPreview(true);
+    };
+
+    const handleGenerarContrato = async (datosContrato: any) => {
+        if (!viewData) return;
+        setContratoLoading(true);
+
+        try {
+            const res: any = await contratosApi.generar(viewData.id || viewData.idsolicitud, datosContrato);
+            // El token para armar la URL pública
+            if (res?.token_acceso) {
+                const link = `${window.location.origin}/firma/${res.token_acceso}`;
+                setContratoLink(link);
+                setShowPreview(false);
+            }
+        } catch (e: any) {
+            alert(e.response?.data?.error || "Error al generar el contrato");
+        } finally {
+            setContratoLoading(false);
+        }
+    };
+
+    const handleSeleccionarContratoManual = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setSelectedManualFile(file);
+        }
+    };
+
+    const handleSubirContratoManual = async () => {
+        if (!viewData || !selectedManualFile) return;
+
+        setUploadingContrato(true);
+        try {
+            await contratosApi.subirManual(viewData.id || viewData.idsolicitud, selectedManualFile);
+            alert("Contrato subido y marcado como firmado exitosamente.");
+            setSelectedManualFile(null);
+            // Refresh view
+            handleView(viewData);
+        } catch (err: any) {
+            alert(err.response?.data?.error || "Error al subir el contrato manual");
+        } finally {
+            setUploadingContrato(false);
+            if (fileInputRef.current) {
+                fileInputRef.current.value = "";
+            }
+        }
+    };
+
     return (
         <Layout>
             <div className="container mx-auto px-4 py-8 page-shell">
@@ -248,18 +309,177 @@ export default function SolicitudesPage() {
                     <Modal
                         isOpen={true}
                         onClose={() => setShowView(false)}
-                        title="Detalle de Solicitud"
-                        className="max-w-2xl"
+                        className="max-w-xl h-[80vh]"
+                        showCloseButton={false}
                     >
-                        <div className="grid grid-cols-2 gap-4 text-sm p-6">
-                            <div><strong>Nro:</strong> {viewData.nrosolicitud}</div>
-                            <div><strong>Cliente:</strong> {viewData.cliente?.appynom || viewData.appynom}</div>
-                            <div><strong>Producto:</strong> {viewData.producto?.descripcion || viewData.producto_descripcion}</div>
-                            <div><strong>Monto:</strong> ${viewData.monto || viewData.totalapagar}</div>
-                            <div className="col-span-2"><strong>Observaciones:</strong> {viewData.observacion || "-"}</div>
+                        {/* Header */}
+                        <div className="flex items-center justify-between px-6 py-2 border-b border-slate-100 bg-white">
+                            <div className="flex items-start gap-3">
+                                <div className="mt-0.5 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-white shadow-sm shrink-0">
+                                    <Info className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h2 className="text-lg font-semibold text-slate-900 leading-6">
+                                        Detalle de Solicitud
+                                    </h2>
+                                    <p className="mt-1 text-sm text-slate-500">
+                                        Información completa de la solicitud y gestión de contratos.
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setShowView(false)}
+                                className="rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition"
+                                aria-label="Cerrar"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
                         </div>
-                        <div className="flex gap-2 p-4 border-t border-slate-100 justify-end bg-slate-50">
-                            <button className="ghost-button" onClick={() => setShowView(false)}>Cerrar</button>
+
+                        {/* Body */}
+                        <div className="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent h-[calc(80vh-140px)]">
+                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                                    <div className="text-xs font-medium text-slate-500">Nro Solicitud</div>
+                                    <div className="mt-1 text-sm font-semibold text-slate-900">
+                                        {viewData.nrosolicitud || "-"}
+                                    </div>
+                                </div>
+                                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                                    <div className="text-xs font-medium text-slate-500">Monto</div>
+                                    <div className="mt-1 text-sm font-semibold text-slate-900">
+                                        ${Number(viewData.monto || viewData.totalapagar || 0).toLocaleString("es-AR", { minimumFractionDigits: 2 })}
+                                    </div>
+                                </div>
+                                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 sm:col-span-2">
+                                    <div className="text-xs font-medium text-slate-500">Cliente</div>
+                                    <div className="mt-1 text-sm font-semibold text-slate-900">
+                                        {viewData.cliente?.appynom || viewData.appynom || "-"}
+                                    </div>
+                                </div>
+                                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 sm:col-span-2">
+                                    <div className="text-xs font-medium text-slate-500">Producto</div>
+                                    <div className="mt-1 text-sm font-semibold text-slate-900">
+                                        {viewData.producto?.descripcion || viewData.producto_descripcion || "-"}
+                                    </div>
+                                </div>
+                                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 sm:col-span-2">
+                                    <div className="text-xs font-medium text-slate-500">Observaciones</div>
+                                    <div className="mt-1 text-sm font-semibold text-slate-900">
+                                        {viewData.observacion || "-"}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Contratos section */}
+                            <div className="mt-6">
+                                <div className="mb-3 flex items-center justify-between">
+                                    <div className="text-sm font-semibold text-slate-900">Gestión de Contratos</div>
+                                </div>
+
+                                <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                                    <div className="flex flex-col gap-4">
+                                        {contratoLink && (
+                                            <div className="p-4 bg-green-50 border border-green-200 rounded-md">
+                                                <p className="text-sm text-green-800 font-medium mb-2">Contrato Pendiente de Firma. Link para el cliente:</p>
+                                                <div className="flex items-center gap-2">
+                                                    <input type="text" readOnly value={contratoLink} className="flex-1 p-2 text-sm border rounded" />
+                                                    <button
+                                                        className="action-button whitespace-nowrap"
+                                                        onClick={() => { navigator.clipboard.writeText(contratoLink); alert("Link copiado!"); }}
+                                                    >
+                                                        Copiar Link
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+                                        <div className="flex justify-between items-center w-full flex-wrap gap-2">
+                                            {viewData.contratos && viewData.contratos.length > 0 && viewData.contratos[0].estado === 2 && viewData.contratos[0].url_pdf_firmado ? (
+                                                <div className="flex justify-between w-full">
+                                                    <a
+                                                        href={viewData.contratos[0].url_pdf_firmado}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="secondary-button rounded-lg p-1 bg-white! text-emerald-600! hover:bg-emerald-600! hover:text-white! transition-all duration-300 cursor-pointer flex items-center gap-2"
+                                                    >
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /><path d="M16 13H8" /><path d="M16 17H8" /><path d="M10 9H8" /></svg>
+                                                        Ver Contrato Firmado
+                                                    </a>
+                                                    <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-1 rounded inline-flex items-center">
+                                                        Contrato Digitalizado y Aprobado
+                                                    </span>
+                                                </div>
+                                            ) : selectedManualFile ? (
+                                                <div className="flex items-center justify-between w-full gap-2 bg-slate-100 p-2 rounded border border-slate-200">
+                                                    <span className="text-sm font-medium truncate max-w-[150px]" title={selectedManualFile.name}>{selectedManualFile.name}</span>
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            className="secondary-button text-xs py-1"
+                                                            onClick={() => {
+                                                                const url = URL.createObjectURL(selectedManualFile);
+                                                                window.open(url, '_blank');
+                                                                setTimeout(() => URL.revokeObjectURL(url), 1000);
+                                                            }}
+                                                        >
+                                                            Abrir
+                                                        </button>
+                                                        <button
+                                                            className="ghost-button text-xs py-1 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                            onClick={() => {
+                                                                setSelectedManualFile(null);
+                                                                if (fileInputRef.current) fileInputRef.current.value = "";
+                                                            }}
+                                                            disabled={uploadingContrato}
+                                                        >
+                                                            Eliminar
+                                                        </button>
+                                                        <button
+                                                            className="action-button bg-green-600 hover:bg-green-700 text-xs py-1"
+                                                            onClick={handleSubirContratoManual}
+                                                            disabled={uploadingContrato}
+                                                        >
+                                                            {uploadingContrato ? "Subiendo..." : "Confirmar"}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+
+
+                                                <div className="flex gap-3 ">
+                                                    <button className="ghost-button text-sm py-2" onClick={handleOpenPreview} disabled={contratoLoading}>
+                                                        Generar Contrato
+                                                    </button>
+                                                    <button
+                                                        className="action-button bg-slate-600 hover:bg-slate-700 text-sm py-2"
+                                                        onClick={() => fileInputRef.current?.click()}
+                                                    >
+                                                        Subir PDF Firmado
+                                                    </button>
+                                                    <input
+                                                        type="file"
+                                                        ref={fileInputRef}
+                                                        className="hidden"
+                                                        accept="application/pdf"
+                                                        onChange={handleSeleccionarContratoManual}
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="flex flex-col-reverse gap-3 border-t border-slate-100 p-5 sm:flex-row sm:justify-end sm:items-center bg-white">
+                            <button
+                                type="button"
+                                className="ghost-button flex-1 sm:flex-none justify-center"
+                                onClick={() => setShowView(false)}
+                            >
+                                Cerrar
+                            </button>
                         </div>
                     </Modal>
                 )}
@@ -427,6 +647,16 @@ export default function SolicitudesPage() {
                     />
                 )}
 
+                {/* Modal for Contract Preview */}
+                {showPreview && viewData && (
+                    <ContratoPreviewModal
+                        isOpen={showPreview}
+                        onClose={() => setShowPreview(false)}
+                        solicitudData={viewData}
+                        onGenerate={handleGenerarContrato}
+                        isLoading={contratoLoading}
+                    />
+                )}
             </div>
         </Layout>
     );

@@ -18,6 +18,7 @@ export type SolicitudColumn = {
     totalPagado: number;
     porcentajePagado: number;
     estado: string;
+    contratos?: any[];
 };
 
 interface SolicitudesListProps {
@@ -116,10 +117,24 @@ export function SolicitudesList({ onCreate, onEdit, onView, onViewPlan }: Solici
                 if (status === "Baja") color = "bg-red-100 text-red-700";
                 if (status === "Pendiente") color = "bg-yellow-100 text-yellow-700";
 
+                const contratos = info.row.original.contratos;
+                let contratoBadge = null;
+                if (contratos && contratos.length > 0) {
+                    const contrato = contratos[0];
+                    if (contrato.estado === 2) {
+                        contratoBadge = <span className="px-2 py-1 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800" title="Contrato Firmado">Firmado</span>;
+                    } else if (contrato.estado === 1) {
+                        contratoBadge = <span className="px-2 py-1 rounded-full text-[10px] font-semibold bg-blue-100 text-blue-800" title="Esperando Firma">Pte. Firma</span>;
+                    }
+                }
+
                 return (
-                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${color}`}>
-                        {status}
-                    </span>
+                    <div className="flex flex-col gap-1 items-start">
+                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${color}`}>
+                            {status}
+                        </span>
+                        {contratoBadge}
+                    </div>
                 );
             },
         },
@@ -172,6 +187,7 @@ export function SolicitudesList({ onCreate, onEdit, onView, onViewPlan }: Solici
             totalPagado: s.totalabonado || s.total_pagado || 0,
             porcentajePagado: s.porcentajepagado || 0,
             estado: s.estado === 0 ? "Baja" : s.estado === 2 ? "Pagada" : "Pendiente",
+            contratos: s.contratos || [],
         };
     });
 

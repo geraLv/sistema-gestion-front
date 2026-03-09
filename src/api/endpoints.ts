@@ -590,3 +590,37 @@ export const dashboardApi = {
     return response.data.data || null;
   },
 };
+
+// Contratos
+export const contratosApi = {
+  generar: async (idsolicitud: number, datosContrato?: any) => {
+    const response = await apiClient.post<ApiResponse<any>>("/contratos/generar", {
+      idsolicitud,
+      datosContrato
+    });
+    return response.data;
+  },
+  getPublico: async (token: string) => {
+    const response = await apiClient.get<ApiResponse<any>>(`/contratos/publico/${token}`);
+    return response.data;
+  },
+  firmar: async (token: string, firmaBase64: string, aclaracionCliente?: string) => {
+    const response = await apiClient.post<ApiResponse<any>>(`/contratos/firmar/${token}`, {
+      firmaBase64,
+      aclaracionCliente
+    });
+    return response.data;
+  },
+  subirManual: async (idsolicitud: number, file: File) => {
+    const formData = new FormData();
+    formData.append("idsolicitud", idsolicitud.toString());
+    formData.append("pdf", file);
+
+    const response = await apiClient.post<ApiResponse<any>>(`/contratos/subir-manual`, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data"
+      }
+    });
+    return response.data;
+  }
+};

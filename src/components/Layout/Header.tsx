@@ -209,6 +209,11 @@ export default function Header() {
                 </li>
 
                 <li className="border-b border-gray-200/80">
+                  <NavLink to="/clientes" className={navItemClass}>
+                    CLIENTES
+                  </NavLink>
+                </li>
+                <li className="border-b border-gray-200/80">
                   <NavLink to="/monitor" className={navItemClass}>
                     MONITOR DE SOLICITUD
                   </NavLink>
@@ -248,11 +253,6 @@ export default function Header() {
               </>
             )}
 
-            <li className="border-b border-gray-200/80">
-              <NavLink to="/clientes" className={navItemClass}>
-                CLIENTES
-              </NavLink>
-            </li>
 
             {/* “espacio” + línea tenue antes de Configuraciones (como la imagen) */}
             <li className="px-6">
@@ -261,76 +261,6 @@ export default function Header() {
               <div className="h-6" />
             </li>
 
-            {/* CONFIGURACIONES row */}
-            {/* <li className="border-b border-gray-200/80">
-              <button
-                type="button"
-                onClick={() => setConfigOpen((v) => !v)}
-                className={[
-                  "w-full flex items-center justify-between",
-                  "px-6 py-4",
-                  "text-[11px] uppercase tracking-[0.22em]",
-                  "text-gray-800",
-                  "font-normal",
-                ].join(" ")}
-              >
-                <span>CONFIGURACIONES</span>
-                <svg
-                  className={`h-4 w-4 text-gray-500 transition-transform ${
-                    configOpen ? "rotate-180" : ""
-                  }`}
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                  aria-hidden="true"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.94a.75.75 0 111.08 1.04l-4.24 4.5a.75.75 0 01-1.08 0l-4.24-4.5a.75.75 0 01.02-1.06z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </button>
-
-              {configOpen && (
-                <div className="bg-[#f1f2f2] border-t border-gray-200/80">
-                  <NavLink
-                    to="/configuraciones/usuarios"
-                    className={({ isActive }) =>
-                      [
-                        "block w-full",
-                        "px-10 py-3",
-                        "text-[11px] uppercase tracking-[0.22em]",
-                        "text-gray-700",
-                        isActive
-                          ? "font-semibold text-gray-900"
-                          : "font-normal",
-                      ].join(" ")
-                    }
-                  >
-                    USUARIOS
-                  </NavLink>
-                  <div className="border-b border-gray-200/80" />
-                  <NavLink
-                    to="/configuraciones/parametros"
-                    className={({ isActive }) =>
-                      [
-                        "block w-full",
-                        "px-10 py-3",
-                        "text-[11px] uppercase tracking-[0.22em]",
-                        "text-gray-700",
-                        isActive
-                          ? "font-semibold text-gray-900"
-                          : "font-normal",
-                      ].join(" ")
-                    }
-                  >
-                    PARÁMETROS
-                  </NavLink>
-                </div>
-              )}
-            </li> */}
-
-            {/* SALIR */}
             <li className="border-b border-gray-200/80 justify-end">
               <button
                 onClick={handleLogout}

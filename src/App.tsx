@@ -12,6 +12,7 @@ import ImpresionesPage from "./pages/ImpresionesPage";
 import AdminPage from "./pages/AdminPage";
 import MonitorPage from "./pages/MonitorPage";
 import MisVentasPage from "./pages/MisVentasPage";
+import FirmaContratoPage from "./pages/FirmaContratoPage";
 import { authApi } from "./api/endpoints";
 import useAuthStore from "./stores/authStore";
 
@@ -56,6 +57,9 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+
+        {/* Ruta pública para firma de contratos */}
+        <Route path="/firma/:token" element={<FirmaContratoPage />} />
 
         {/* Ruta raíz: admin → Dashboard, vendedor → /mis-ventas */}
         <Route

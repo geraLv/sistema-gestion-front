@@ -33,7 +33,7 @@ export function CuotaDetailModal({
     return (
         <Modal isOpen={true} onClose={onClose} className="max-w-xl h-[80vh]" showCloseButton={false}>
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-white">
+            <div className="flex items-center justify-between px-6 py-2 border-b border-slate-100 bg-white">
                 <div className="flex items-start gap-3">
                     <div className="mt-0.5 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-white shadow-sm shrink-0">
                         <Info className="w-5 h-5" />
@@ -51,7 +51,7 @@ export function CuotaDetailModal({
                 <button
                     type="button"
                     onClick={onClose}
-                    className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition"
+                    className="rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition"
                     aria-label="Cerrar"
                 >
                     <X className="w-5 h-5" />
