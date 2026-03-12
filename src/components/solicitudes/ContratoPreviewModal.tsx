@@ -120,6 +120,16 @@ export function ContratoPreviewModal({
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
+        if (!formData.aclaracionProductor.trim()) {
+            alert("Por favor, ingrese la Aclaración del Productor.");
+            return;
+        }
+
+        if (!sigCanvasRef.current || sigCanvasRef.current.isEmpty()) {
+            alert("Por favor, estampe la Firma del Productor.");
+            return;
+        }
+
         let firmaUrl = "";
         if (sigCanvasRef.current && !sigCanvasRef.current.isEmpty()) {
             firmaUrl = sigCanvasRef.current.getCanvas().toDataURL("image/png");
