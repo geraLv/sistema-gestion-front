@@ -28,12 +28,7 @@ export function CuotaEditModal({ cuota, onClose, onSave }: CuotaEditModalProps) 
 
     const handleSubmit = async () => {
         setError(null);
-        if (isPagada) {
-            if (!fechaPago && !isFormaPagoMissing) {
-                setError("Debe seleccionar la fecha de pago.");
-                return;
-            }
-        } else {
+        if (!isPagada) {
             if (!importe || Number(importe) <= 0) {
                 setError("El importe debe ser mayor a 0");
                 return;
@@ -46,6 +41,7 @@ export function CuotaEditModal({ cuota, onClose, onSave }: CuotaEditModalProps) 
                 const payload: any = {};
                 if (fechaPago) payload.fechaPago = fechaPago;
                 if (isFormaPagoMissing && formaPago) payload.formapago = formaPago;
+                if (importe) payload.importe = Number(importe);
 
                 await onSave(cuota.idcuota || cuota.id, payload);
             } else {
@@ -108,13 +104,23 @@ export function CuotaEditModal({ cuota, onClose, onSave }: CuotaEditModalProps) 
                 {isPagada ? (
                     <div className="space-y-4">
                         <div>
+                            <label className="block text-sm font-semibold text-slate-800 mb-2">Importe</label>
+                            <input
+                                type="number"
+                                step="0.01"
+                                className="input-sleek w-full text-lg"
+                                value={importe}
+                                onChange={(e) => setImporte(e.target.value)}
+                                autoFocus
+                            />
+                        </div>
+                        <div>
                             <label className="block text-sm font-semibold text-slate-800 mb-2">Fecha de pago</label>
                             <input
                                 type="date"
                                 className="input-sleek w-full text-lg"
                                 value={fechaPago}
                                 onChange={(e) => setFechaPago(e.target.value)}
-                                autoFocus
                             />
                         </div>
                         {isFormaPagoMissing && (

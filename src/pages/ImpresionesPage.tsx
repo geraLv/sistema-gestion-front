@@ -24,7 +24,7 @@ export default function ImpresionesPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [idCuota, setIdCuota] = useState("");
+  const [nroSolicitud, setNroSolicitud] = useState("");
   const [mesRecibos, setMesRecibos] = useState("");
   const [localidadId, setLocalidadId] = useState("");
   const [mesLocalidad, setMesLocalidad] = useState("");
@@ -68,20 +68,23 @@ export default function ImpresionesPage() {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
-  const handleReciboCuota = async () => {
-    const id = Number(idCuota);
-    if (!Number.isFinite(id) || id <= 0) {
-      setError("Debe ingresar un ID de cuota válido.");
+  const handleReciboUltimaPagada = async () => {
+    if (!nroSolicitud || nroSolicitud.trim() === "") {
+      setError("Debe ingresar un Nº de Solicitud válido.");
       return;
     }
     setError(null);
     setLoading(true);
     try {
-      const blob = await reportesApi.reciboCuota(id, sinFecha);
-      openBlob(blob, `recibo-cuota-${id}.pdf`);
-    } catch (err) {
+      const blob = await reportesApi.reciboUltimaPagada(nroSolicitud, sinFecha);
+      openBlob(blob, `recibo-ultima-pagada-${nroSolicitud}.pdf`);
+    } catch (err: any) {
       console.error(err);
-      setError("No se pudo generar el recibo de cuota.");
+      if (err.response?.status === 404) {
+        setError("La solicitud no tiene cuotas pagadas o no existe.");
+      } else {
+        setError("No se pudo generar el recibo.");
+      }
     } finally {
       setLoading(false);
     }
@@ -189,16 +192,16 @@ export default function ImpresionesPage() {
 
         <div className="legacy-grid">
           <section className="legacy-panel">
-            <h3>Recibo de Cuota</h3>
-            <p>Genera el recibo PDF de una cuota específica.</p>
+            <h3>Último Recibo Pagado</h3>
+            <p>Genera el recibo PDF de la última cuota pagada de una solicitud.</p>
             <div className="legacy-field">
-              <label htmlFor="idCuota">ID Cuota</label>
+              <label htmlFor="nroSolicitud">Nº Solicitud</label>
               <input
-                id="idCuota"
-                type="number"
-                value={idCuota}
-                onChange={(e) => setIdCuota(e.target.value)}
-                placeholder="Ej: 125"
+                id="nroSolicitud"
+                type="text"
+                value={nroSolicitud}
+                onChange={(e) => setNroSolicitud(e.target.value)}
+                placeholder="Ej: 12345"
               />
             </div>
             <div className="legacy-field">
@@ -214,7 +217,7 @@ export default function ImpresionesPage() {
             <div className="legacy-actions">
               <button
                 className="legacy-button primary"
-                onClick={handleReciboCuota}
+                onClick={handleReciboUltimaPagada}
                 disabled={loading}
               >
                 Imprimir recibo

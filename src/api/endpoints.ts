@@ -511,6 +511,17 @@ export const reportesApi = {
     return response.data as Blob;
   },
 
+  reciboUltimaPagada: async (nroSolicitud: string, sinFecha?: boolean) => {
+    const response = await apiClient.get(
+      `/reportes/recibos/ultima-pagada/${nroSolicitud}`,
+      {
+        params: { sinFecha: sinFecha ? "true" : undefined },
+        responseType: "blob"
+      }
+    );
+    return response.data as Blob;
+  },
+
   recibosSolicitudPagados: async (idsolicitud: number) => {
     const response = await apiClient.get(
       `/reportes/recibos/solicitud/${idsolicitud}`,
