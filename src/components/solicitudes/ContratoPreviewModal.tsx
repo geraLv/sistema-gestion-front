@@ -139,6 +139,9 @@ export function ContratoPreviewModal({
 
                     {/* SECCIÓN 1: ENCABEZADO */}
                     <h3 className="text-md font-bold text-slate-800 border-b pb-1 mt-4">Encabezado de Solicitud</h3>
+                    <p className="text-xs text-slate-500 mt-2 mb-2 italic">
+                        Solicitud de pedido: Veh. Nuevo, Veh. Usado, Nº Óp, Fecha, Producto Solicitado, Cód.
+                    </p>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <div>
                             <label className="block text-xs font-medium text-slate-700 mb-1">Veh. Nuevo</label>
@@ -178,6 +181,9 @@ export function ContratoPreviewModal({
 
                     {/* SECCIÓN 2: DATOS DEL SOLICITANTE */}
                     <h3 className="text-md font-bold text-slate-800 border-b pb-1 mt-6">Datos del Cliente</h3>
+                    <p className="text-xs text-slate-500 mt-2 mb-2 italic">
+                        Cliente: Apellido y Nombre, Estado Civil, DNI – LE – LC, F. Nac, Hijos, Domicilio, Tel, Referencia, Cód. Postal, Localidad, Provincia.
+                    </p>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <div className="md:col-span-2">
                             <label className="block text-xs font-medium text-slate-700 mb-1">Apellido y Nombre</label>
@@ -227,6 +233,9 @@ export function ContratoPreviewModal({
 
                     {/* SECCIÓN 3: CONYUGE */}
                     <h3 className="text-md font-bold text-slate-800 border-b pb-1 mt-6">Cónyuge</h3>
+                    <p className="text-xs text-slate-500 mt-2 mb-2 italic">
+                        CONYUGUE: Apellido y Nombre, DNI, F. Nac, Domicilio, Tel.
+                    </p>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <div>
                             <label className="block text-xs font-medium text-slate-700 mb-1">Apellido y Nombre</label>
@@ -250,6 +259,10 @@ export function ContratoPreviewModal({
                         </div>
                     </div>
 
+                    <div className="bg-slate-100 p-3 rounded mt-6 text-xs text-slate-700 font-serif border-l-4 border-blue-400">
+                        LOS DATOS CONSIGNADOS SON VERDADEROS DECLARANDO BAJO JURAMENTO Y EN FUNCION DE ELLOS SOLICITO MI PEDIDO DE ACUERDO A LOS TERMINOS DEL PRECONTRATO QUE DECLARO CONOCER Y ACEPTAR.
+                    </div>
+
                     {/* SECCIÓN 4: OBSERVACIONES */}
                     <h3 className="text-md font-bold text-slate-800 border-b pb-1 mt-6">Observaciones</h3>
                     <div className="grid grid-cols-1 gap-2">
@@ -259,6 +272,9 @@ export function ContratoPreviewModal({
 
                     {/* SECCIÓN 5: RECIBO Y CONTRATO */}
                     <h3 className="text-md font-bold text-slate-800 border-b pb-1 mt-6">Recibo y Otros Datos</h3>
+                    <p className="text-xs text-slate-500 mt-2 mb-2 italic">
+                        RECIBO AUTORIZADO: En la ciudad de..., Recibí de... La suma de... En pago del pedido Nº... Cuyo importe es no reintegrable. SON $...
+                    </p>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <div>
                             <label className="block text-xs font-medium text-slate-700 mb-1">En la ciudad de</label>
@@ -313,6 +329,38 @@ export function ContratoPreviewModal({
                                 onChange={handleNumberChange}
                                 className="w-full px-2 py-1 border border-slate-300 rounded focus:ring-blue-500 focus:border-blue-500"
                             />
+                        </div>
+                    </div>
+
+                    {/* CLAUSULAS DEL CONTRATO */}
+                    <h3 className="text-md font-bold text-slate-800 border-b pb-1 mt-8">Condiciones Particulares del Contrato</h3>
+                    <div className="bg-slate-50 p-4 border border-slate-200 rounded text-xs text-slate-700 space-y-3 mt-4 text-justify font-serif h-64 overflow-y-auto">
+                        <p className="font-bold text-center mb-2">CONDICIONES PARTICULARES DEL CONTRATO</p>
+                        <p>Entre Crédito Gestión en adelante el GESTOR, y el Sr. Cliente que al final acompaña sus datos personales firmando y ratificando las clausula aquí expresas, convienen el siguiente contrato de gestión de negocios, todo de acuerdo a lo siguiente:</p>
+                        <p><strong>PRIMERA: DEFINICIONES Y TERMINOLOGIAS:</strong> los términos que se emplean en las siguientes condiciones generales tienen el significado y el alcance que se indica a continuación: BIEN TIPO: bien mueble de fabricación nacional o importado nuevo y/o usado, cuya individualización será efectuada por CREDITO GESTION por cuenta y orden dl CLIENTE. PRECIO DE LISTA: precio de venta al público del bien tipo, determinado por la agencia o concesionaria que corresponda, VALOR BASICO MOVIL: Precio de venta del bien tipo, sujeto a variaciones del mismo. GASTOS ADMINISTRATIVOS: es la parte del diez por ciento (10%) que el cliente deberá cumplir al momento de gestionar crédito a su favor si corresponde.</p>
+                        <p><strong>SEGUNDA:</strong> EL CLIENTE asu vez acepta por el presente contrato, la intervención del GESTOR CREDITOGESTION y/o personas físicas que este designe, a los fines de que en su nombre y representación individualice la unidad específica previamente al frente del presente contrato, que, a satisfacción del CLIENTE, este presente su consentimiento para posterior realización de la compra de la unidad mencionada a través de un crédito financiera si fuera necesario.</p>
+                        <p><strong>CUARTA:</strong> CREDITO GESTION queda facultado a través de presente y con justificación de causa rechazar la solicitud del CLIENTE dentro de treinta días (30) de la fecha de pedido, debiendo en este único caso notificar en forma fehaciente al CLIENTE dicho rechazo y los motivos poniendo enesta única y excepcional circunstancia todos los fondos a su disposición sin que devenguen interés alguno, ni ningún tipo de indemnización por parte de CREDITO GESTION favor del CLIENTE, queda aclarado que los citados fondos no incluyen montos abonados en concepto de comisión.</p>
+                        <p><strong>QUINTA:</strong> EL CLIENTE acepta abonar en concepto de pago por la gestión encomendada el diez por ciento (10%) del precio por adelantado. En dicho monto se incluye los gastos de transferencia para el caso de la unidad usada, patentamientode la unidad y flete para unidades nuevas, a su vez deberá el CLIENTE completar al momento de retirar la unidad de un total del cincuentapor ciento (50%) del precio total, que será entregado ante la agencia o concesionaria que corresponda, mientras que el saldo restante del precio, es decir el sesenta por ciento (60%) será cubierto por el crédito transmitido por el GESTOR a nombre del CLIENTE siempre y cuando se cumpla con los requisitos ante la entidad financiera que corresponda, los citados montos quedan sujetos a facturas variaciones, originadas por hechos externos a la empresa.</p>
+                        <p><strong>SEXTA:</strong> EL CLIENTE quehaya elegido la modalidad en cuotas del diez por ciento (10%) del precio total se compromete a realizar dichos pagos en la sede central de la empresa CREDITO GESTION y dentro del 01 al 10 de casa mes en forma consecutiva. Si el décimo día fuera inhábil el plazose extenderá hasta el día hábil posterior siendo este requisito indispensable para el cumplimiento del presente contrato. En caso de atraso cada pago generara un interés del diez por ciento (10%) del total de la cuota lo que deberán ser abonados inmediatamente y conjuntamente por el CLIENTE almomento del pago de la o las cuotas atrasadas, no aceptando el GESTOR ni pagos a cuenta ni parciales en este sentido, siendo causal de recisión y por exclusiva culpa y responsabilidad del CLIENTE su cumplimiento.</p>
+                        <p><strong>SEPTIMA: SANCIONES POR INCUMPLIMIENTO:</strong> quedara resuelto de pleno derecho el presente contrato, sin derecho o reclamo a devolución alguna, cuando el CLIENTE dejara de abonar dos (2) cuotas consecutivas y/o tres (3) alternadas, considerándose en este caso que existe expresa renuncia a la gestión encomendada y al total de lo abonado hasta el momento.</p>
+                        <p><strong>OCTAVA: CAMBIO DE MODELO O FABRICACION:</strong> EL CLIENTE podrá optar durante el transcurso del presente contrato, por un cambio en la unidad primeramente seleccionada, como así también CREDITO GESTION informara en caso de eventualidad que se dejase de fabricar el modelo elegido por el CLIENTE, Y SE LOS SUSTITUYA POR UNA VARIANTE DEL MISMO O POR UN NUEVO MODELO, SE ESTABLECE QUE EN TALES CASOS SE PROCEDERA DE LA SIGUIENTE MANERA: a) En primer lugar y para determinar que se trata de un modelo del bien de una variante anterior, se atenderá a lo que así defina el fabricante del bien, de acuerdo a las normas legales vigentes en casa oportunidad además para considerar su nuevo modelo, su precio deberá haber sufrido un aumento efectivo de más del quince por ciento (15%) al modelo anterior (último precio del mismo). Si solo se trata de una variante del modelo, las respectivas obligaciones no sufrirán modificación alguna y se continuara entregando el bien de dicha variante. En el caso el importe del (10%) abonado de cuotas por el CLIENTE se reajustaráde acuerdo a lo establecido en la cláusula primera del presente contrato. Si se tratase de un cambio de modelo ofrecido deberá presentarse en el plazode quince días de realizada la comunicación por CREDITO GESTION y optar por otro modelo o marca, siempre que sea igual o mayor valor que el primeramente señalado.</p>
+                        <p><strong>NOVENA:</strong> Si el CLIENTE opta por elegir una unidad de menor valor que la pactada originalmente CREDITO GESTION se compromete a reintegrar si corresponde únicamente la diferencia del diez por ciento (10%) pactado precedentemente como gastos administrativos y comisión, mientras que la diferencia del precio será prorrateada de las cuotas restantes porla unidad que otorga el crédito restante, es decir el sesenta por ciento (60%). Para el caso de que la comisión y gastos cobrados con anterioridad por CREDITO GESTION fuera pagado al contado o en un solo pago se reintegrara la diferencia total del monto entregado sin que este generé interés ni indemnización de ningún tipo, siendo a exclusivo cargo del CLIENTE alcambio efectuado calculándose toda la diferencia al momento en el cual se efectué la opción.</p>
+                        <p><strong>DECIMA:</strong> Una vez concedido el crédito a través de la entidad que corresponda CREDITO GESTION culmina su intervención y es a cargo del CLIENTE el pago regular de las cuotas acordadas, no surgiendo responsabilidad alguna para el primero en cumplimiento y demás condiciones avaladas por EL CLIENTE almomento de la forma del mutuo crediticio, y será a cargo exclusivo del CLIENTE los gastos de emisión del crédito o prenda.</p>
+                        <p><strong>DECIMA PRIMERA: RENUNCUA O RESICION:</strong> EL CLIENTE podráprescindir de los servicios de CREDITO GESTION solicitando lo abonado hasta el momentoa partir de la cuota dieciocho (18), siempre y cuando se encuentre al día con los pagos mensuales y no haya tenido atrasos en ninguna de dichas cuotas. La notificación de renuncia deberá realizarse en forma fehaciente a la empresa, quien dispondrá de un plazo de cuarenta y cinco días hábiles para aceptar la mismo, vencido dicho plazo pondrá a disposición del cliente –en caso de corresponder –lo abonado por el mismo hasta el momento, descontando los montosde gastos administrativos y un porcentaje total del 45% correspondiente a perdida de chance, se pondrá los citados montos a disposicióndel cliente en un cheque diferido.</p>
+                        <p><strong>DECIMA SEGUNDA:</strong> Para el caso de rechazo de crédito por la entidad otorgada, se dará por rescindido el convenio de común acuerdo sin interpelación ni reclamo alguno, tomando un sesenta por ciento /60%) de lo entregado hasta el momento como seña dentro de lo previsto y alcance del código civil.</p>
+                        <p><strong>DECIMA CUARTA:</strong> El presente contrato se rige por las previsiones del art. 2268 y CC del código civil. El CLIENTE alfirmar el mismo, el cual declara haber leído, interpretando y conociendo, queda obligado al cumplimiento de todas las obligaciones que surgen de este. Queda establecido que aquellas cuestiones o circunstancias que no se encuentren pactadas deberán ser dirimidas a través de un proceso judicial. Así mismo de existir conflictos y diferencias irreconciliables entre las partes contratantes, se comprometen en forma previa a cualquier acción judicial, a realizar una mediación a través del colegio de abogados de la ciudad de salta y/o mediador matriculado.</p>
+                        <p className="mt-4 mb-2 text-center text-sm font-bold bg-slate-200 p-2 rounded">
+                            DECLARO HABER LEIDO, INTERPRETADO Y CONOCIDO TODOS LOS ALCANCES DEL PRESENTE CONTRATO.
+                        </p>
+                        <div className="flex justify-between items-end mt-4 px-4 text-xs">
+                            <div className="flex flex-col items-center">
+                                <div className="border-t border-slate-400 w-48 mb-1"></div>
+                                <p>FIRMA Y ACLARACIÓN DEL CLIENTE</p>
+                            </div>
+                            <div className="flex flex-col items-center">
+                                <div className="border-t border-slate-400 w-48 mb-1"></div>
+                                <p>REP. EMPRESA</p>
+                            </div>
                         </div>
                     </div>
 

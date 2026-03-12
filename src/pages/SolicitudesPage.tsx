@@ -66,9 +66,24 @@ export default function SolicitudesPage() {
         setViewMode("edit");
     };
 
-    const handleSuccess = () => {
+    const handleSuccess = async (data?: any, action?: 'save' | 'save_and_contract') => {
         setViewMode("list");
         setSelectedId(null);
+
+        if (action === 'save_and_contract' && data) {
+            try {
+                // Fetch fresh details with nested objects (cliente, producto, etc)
+                const solId = data.idsolicitud || data.id;
+                if (!solId) return;
+
+                const detailedData: any = await solicitudesApi.getById(solId);
+                setViewData(detailedData);
+                setShowView(true);
+                setShowPreview(true);
+            } catch (err) {
+                console.error("Error fetching detail for contract preview", err);
+            }
+        }
     };
 
     const handleView = async (id: number) => {

@@ -3,6 +3,9 @@ import { solicitudesApi } from "../api/endpoints";
 import useAuthStore from "../stores/authStore";
 import Layout from "../components/Layout";
 import { SolicitudForm } from "../components/solicitudes/SolicitudForm";
+import { ContratoPreviewModal } from "../components/solicitudes/ContratoPreviewModal";
+import { contratosApi } from "../api/endpoints";
+import { Modal } from "../components/ui/Modal";
 
 interface Venta {
     idsolicitud: number;
@@ -15,6 +18,7 @@ interface Venta {
     porcentajepagado: number;
     estado: number;
     fechalta?: string;
+    contratos?: any[];
 }
 
 const estadoLabel: Record<number, { label: string; color: string }> = {
@@ -31,6 +35,13 @@ export default function MisVentasPage() {
     const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(1);
     const [showForm, setShowForm] = useState(false);
+
+    // Contract generation states
+    const [selectedSolicitud, setSelectedSolicitud] = useState<any>(null);
+    const [showPreview, setShowPreview] = useState(false);
+    const [contratoLoading, setContratoLoading] = useState(false);
+    const [contratoLink, setContratoLink] = useState<string | null>(null);
+
     const pageSize = 15;
 
     const fetchVentas = async () => {
@@ -53,6 +64,24 @@ export default function MisVentasPage() {
         fetchVentas();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [page]);
+
+    const handleGenerarContrato = async (datosContrato: any) => {
+        if (!selectedSolicitud) return;
+        setContratoLoading(true);
+
+        try {
+            const res: any = await contratosApi.generar(selectedSolicitud.idsolicitud || selectedSolicitud.id, datosContrato);
+            if (res?.token_acceso) {
+                const link = `${window.location.origin}/firma/${res.token_acceso}`;
+                setContratoLink(link);
+                setShowPreview(false);
+            }
+        } catch (e: any) {
+            alert(e.response?.data?.error || "Error al generar el contrato");
+        } finally {
+            setContratoLoading(false);
+        }
+    };
 
     // KPIs derivados
     const totalImporte = kpis ? kpis.totalImporte : ventas.reduce((s, v) => s + (v.totalapagar ?? 0), 0);
@@ -129,7 +158,9 @@ export default function MisVentasPage() {
                                         <th className="px-4 py-3 text-right">Total a pagar</th>
                                         <th className="px-4 py-3 text-center">% Pagado</th>
                                         <th className="px-4 py-3 text-center">Estado</th>
+                                        <th className="px-4 py-3 text-center">Contrato</th>
                                         <th className="px-4 py-3 text-left">Fecha</th>
+                                        <th className="px-4 py-3 text-center">Acción</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100 bg-white">
@@ -158,8 +189,58 @@ export default function MisVentasPage() {
                                                         {est.label}
                                                     </span>
                                                 </td>
+                                                <td className="px-4 py-3 text-center">
+                                                    {v.contratos && v.contratos.length > 0 ? (
+                                                        v.contratos[0].estado === 2 && v.contratos[0].url_pdf_firmado ? (
+                                                            <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-100 text-emerald-700">
+                                                                Firmado
+                                                            </span>
+                                                        ) : (
+                                                            <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-100 text-amber-700" title="Pendiente de firma por el cliente">
+                                                                Pte. Firma
+                                                            </span>
+                                                        )
+                                                    ) : (
+                                                        <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-600" title="Aún no se ha generado el contrato digital">
+                                                            Sin Generar
+                                                        </span>
+                                                    )}
+                                                </td>
                                                 <td className="px-4 py-3 text-gray-500 text-xs">
                                                     {v.fechalta ? new Date(v.fechalta).toLocaleDateString("es-AR") : "—"}
+                                                </td>
+                                                <td className="px-4 py-3 text-center">
+                                                    {v.contratos && v.contratos.length > 0 && v.contratos[0].estado === 2 && v.contratos[0].url_pdf_firmado ? (
+                                                        <a
+                                                            href={v.contratos[0].url_pdf_firmado}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="inline-flex items-center justify-center p-1.5 text-emerald-600 bg-emerald-50 rounded hover:bg-emerald-100 hover:text-emerald-800 transition-colors"
+                                                            title="Descargar Contrato Firmado"
+                                                        >
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-download">
+                                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                                                <polyline points="7 10 12 15 17 10" />
+                                                                <line x1="12" x2="12" y1="15" y2="3" />
+                                                            </svg>
+                                                        </a>
+                                                    ) : (
+                                                        <button
+                                                            onClick={async () => {
+                                                                try {
+                                                                    const detailedData = await solicitudesApi.getById(v.idsolicitud);
+                                                                    setSelectedSolicitud(detailedData);
+                                                                    setShowPreview(true);
+                                                                } catch (e) {
+                                                                    console.error("Error fetching detail for contract preview", e);
+                                                                }
+                                                            }}
+                                                            className="inline-flex items-center justify-center p-1.5 text-blue-600 bg-blue-50 rounded hover:bg-blue-100 hover:text-blue-800 transition-colors"
+                                                            title="Crear/Ver Contrato"
+                                                        >
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /><path d="M16 13H8" /><path d="M16 17H8" /><path d="M10 9H8" /></svg>
+                                                        </button>
+                                                    )}
                                                 </td>
                                             </tr>
                                         );
@@ -211,16 +292,83 @@ export default function MisVentasPage() {
                         </div>
                         <div className="p-6">
                             <SolicitudForm
-                                onSuccess={() => {
+                                onSuccess={async (data, action) => {
                                     setShowForm(false);
                                     setPage(1);
                                     fetchVentas();
+
+                                    if (action === 'save_and_contract' && data) {
+                                        const solId = data.idsolicitud || data.id;
+                                        if (solId) {
+                                            try {
+                                                const detailedData = await solicitudesApi.getById(solId);
+                                                setSelectedSolicitud(detailedData);
+                                                setShowPreview(true);
+                                            } catch (e) {
+                                                console.error("Error fetching detail for contract preview", e);
+                                            }
+                                        }
+                                    }
                                 }}
                                 onCancel={() => setShowForm(false)}
                             />
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Modal for Contract Preview */}
+            {showPreview && selectedSolicitud && (
+                <ContratoPreviewModal
+                    isOpen={showPreview}
+                    onClose={() => setShowPreview(false)}
+                    solicitudData={selectedSolicitud}
+                    onGenerate={handleGenerarContrato}
+                    isLoading={contratoLoading}
+                />
+            )}
+
+            {/* Modal para mostrar link del contrato generado */}
+            {contratoLink && (
+                <Modal
+                    isOpen={true}
+                    onClose={() => setContratoLink(null)}
+                    title="Contrato Generado"
+                    className="max-w-md"
+                >
+                    <div className="p-6">
+                        <div className="p-4 bg-green-50 border border-green-200 rounded-md mb-4">
+                            <p className="text-sm text-green-800 font-medium mb-2">Contrato Pendiente de Firma. Link para el cliente:</p>
+                            <input
+                                type="text"
+                                readOnly
+                                value={contratoLink}
+                                className="w-full p-2 text-sm border rounded mb-3 bg-white"
+                            />
+                            <div className="flex gap-2">
+                                <button
+                                    className="action-button flex-1"
+                                    onClick={() => { navigator.clipboard.writeText(contratoLink); alert("Link copiado!"); }}
+                                >
+                                    Copiar Link
+                                </button>
+                                <a
+                                    href={contratoLink}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="secondary-button flex-1 text-center"
+                                >
+                                    Abrir Modalidad
+                                </a>
+                            </div>
+                        </div>
+                        <div className="flex justify-end mt-4">
+                            <button className="ghost-button" onClick={() => setContratoLink(null)}>
+                                Cerrar
+                            </button>
+                        </div>
+                    </div>
+                </Modal>
             )}
         </Layout>
     );

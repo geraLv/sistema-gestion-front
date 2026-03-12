@@ -10,6 +10,7 @@ export default function FirmaContratoPage() {
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
+    const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
 
     const [data, setData] = useState<any>(null);
     const [aclaracionCliente, setAclaracionCliente] = useState("");
@@ -64,8 +65,15 @@ export default function FirmaContratoPage() {
             if (!firmaUrl)
                 throw new Error("No se pudo obtener la imagen de la firma");
 
-            await contratosApi.firmar(token, firmaUrl, aclaracionCliente);
+            const response = await contratosApi.firmar(token, firmaUrl, aclaracionCliente);
             setSuccess(true);
+
+            // Auto-descargar/abrir el PDF firmado si la URL existe en la respuesta
+            if (response && response.url_pdf_firmado) {
+                setDownloadUrl(response.url_pdf_firmado);
+                window.open(response.url_pdf_firmado, "_blank");
+            }
+
         } catch (err: any) {
             alert(
                 err.response?.data?.error ||
@@ -108,9 +116,19 @@ export default function FirmaContratoPage() {
                         ¡Contrato Firmado!
                     </h2>
                     <p className="text-slate-600 mb-6">
-                        Hemos guardado su firma exitosamente. Puede cerrar esta ventana con
-                        seguridad.
+                        Hemos guardado su firma exitosamente. El contrato firmado se descargará o abrirá en una nueva pestaña automáticamente.
                     </p>
+                    {downloadUrl && (
+                        <a
+                            href={downloadUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-semibold"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /><path d="M16 13H8" /><path d="M16 17H8" /><path d="M10 9H8" /></svg>
+                            Descargar Contrato Firmado
+                        </a>
+                    )}
                 </div>
             </div>
         );
@@ -262,7 +280,11 @@ export default function FirmaContratoPage() {
                     </div>
                 </div>
 
-                <p className="text-center text-xs text-slate-400 mt-8">
+                <p className="text-center text-xs text-slate-500 mt-4">
+                    Al confirmar la firma, se generará y descargará automáticamente su contrato en formato PDF con su firma incluida.
+                </p>
+
+                <p className="text-center text-xs text-slate-400 mt-4">
                     Al firmar, usted acepta los términos y condiciones especificados en el
                     contrato. Se registrará la fecha, hora y su dirección IP (
                     {new Date().toLocaleDateString()}).

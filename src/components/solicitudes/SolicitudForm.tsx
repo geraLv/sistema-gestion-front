@@ -5,13 +5,14 @@ import { SearchableSelect } from "../ui/SearchableSelect";
 
 interface SolicitudFormProps {
     id?: number; // If present, edit mode
-    onSuccess: () => void;
+    onSuccess: (data?: any, action?: 'save' | 'save_and_contract') => void;
     onCancel: () => void;
 }
 
 export function SolicitudForm({ id, onSuccess, onCancel }: SolicitudFormProps) {
     const isEdit = !!id;
     const { data: solicitudData, isLoading: isLoadingSolicitud } = useSolicitud(id || 0);
+    const isSigned = solicitudData && (solicitudData as any).contratos && (solicitudData as any).contratos.length > 0 && (solicitudData as any).contratos[0].estado === 2;
     const createMutation = useCreateSolicitud();
     const updateMutation = useUpdateSolicitud();
 
@@ -32,6 +33,7 @@ export function SolicitudForm({ id, onSuccess, onCancel }: SolicitudFormProps) {
     });
 
     const [error, setError] = useState<string | null>(null);
+    const [submitAction, setSubmitAction] = useState<'save' | 'save_and_contract'>('save');
 
     useEffect(() => {
         // Load products only (clients are searched on demand)
@@ -138,12 +140,13 @@ export function SolicitudForm({ id, onSuccess, onCancel }: SolicitudFormProps) {
         };
 
         try {
+            let res;
             if (isEdit && id) {
-                await updateMutation.mutateAsync({ id, data: payload });
+                res = await updateMutation.mutateAsync({ id, data: payload });
             } else {
-                await createMutation.mutateAsync(payload);
+                res = await createMutation.mutateAsync(payload);
             }
-            onSuccess();
+            onSuccess(res, submitAction);
         } catch (err: any) {
             console.error("Update/Create error:", err);
             const msg = err.response?.data?.error || err.message || "Error al guardar la solicitud";
@@ -267,7 +270,7 @@ export function SolicitudForm({ id, onSuccess, onCancel }: SolicitudFormProps) {
                 />
             </div>
 
-            <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100">
+            <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-100 flex-wrap">
                 <button
                     type="button"
                     onClick={onCancel}
@@ -278,11 +281,22 @@ export function SolicitudForm({ id, onSuccess, onCancel }: SolicitudFormProps) {
                 </button>
                 <button
                     type="submit"
-                    className="action-button"
+                    className="ghost-button"
                     disabled={isSubmitting}
+                    onClick={() => setSubmitAction('save')}
                 >
-                    {isSubmitting ? "Guardando..." : "Guardar Solicitud"}
+                    Guardar Solicitud
                 </button>
+                {!isSigned && (
+                    <button
+                        type="submit"
+                        className="action-button bg-emerald-600 hover:bg-emerald-700"
+                        disabled={isSubmitting}
+                        onClick={() => setSubmitAction('save_and_contract')}
+                    >
+                        {isSubmitting && submitAction === 'save_and_contract' ? "Procesando..." : "Guardar y Crear Contrato"}
+                    </button>
+                )}
             </div>
         </form>
     );
