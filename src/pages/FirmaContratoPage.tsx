@@ -65,7 +65,7 @@ export default function FirmaContratoPage() {
             if (!firmaUrl)
                 throw new Error("No se pudo obtener la imagen de la firma");
 
-            const response = await contratosApi.firmar(token, firmaUrl, aclaracionCliente);
+            const response: any = await contratosApi.firmar(token, firmaUrl, aclaracionCliente);
             setSuccess(true);
 
             // Auto-descargar/abrir el PDF firmado si la URL existe en la respuesta
