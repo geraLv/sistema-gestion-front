@@ -210,37 +210,54 @@ export default function MisVentasPage() {
                                                     {v.fechalta ? new Date(v.fechalta).toLocaleDateString("es-AR") : "—"}
                                                 </td>
                                                 <td className="px-4 py-3 text-center">
-                                                    {v.contratos && v.contratos.length > 0 && v.contratos[0].estado === 2 && v.contratos[0].url_pdf_firmado ? (
-                                                        <a
-                                                            href={v.contratos[0].url_pdf_firmado}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="inline-flex items-center justify-center p-1.5 text-emerald-600 bg-emerald-50 rounded hover:bg-emerald-100 hover:text-emerald-800 transition-colors"
-                                                            title="Descargar Contrato Firmado"
-                                                        >
-                                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-download">
-                                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                                                                <polyline points="7 10 12 15 17 10" />
-                                                                <line x1="12" x2="12" y1="15" y2="3" />
-                                                            </svg>
-                                                        </a>
-                                                    ) : (
-                                                        <button
-                                                            onClick={async () => {
-                                                                try {
-                                                                    const detailedData = await solicitudesApi.getById(v.idsolicitud);
-                                                                    setSelectedSolicitud(detailedData);
-                                                                    setShowPreview(true);
-                                                                } catch (e) {
-                                                                    console.error("Error fetching detail for contract preview", e);
-                                                                }
-                                                            }}
-                                                            className="inline-flex items-center justify-center p-1.5 text-blue-600 bg-blue-50 rounded hover:bg-blue-100 hover:text-blue-800 transition-colors"
-                                                            title="Crear/Ver Contrato"
-                                                        >
-                                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /><path d="M16 13H8" /><path d="M16 17H8" /><path d="M10 9H8" /></svg>
-                                                        </button>
-                                                    )}
+                                                    <div className="flex justify-center items-center gap-2">
+                                                        {v.contratos && v.contratos.length > 0 && v.contratos[0].estado === 2 && v.contratos[0].url_pdf_firmado ? (
+                                                            <a
+                                                                href={v.contratos[0].url_pdf_firmado}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="inline-flex items-center justify-center p-1.5 text-emerald-600 bg-emerald-50 rounded hover:bg-emerald-100 hover:text-emerald-800 transition-colors"
+                                                                title="Descargar Contrato Firmado"
+                                                            >
+                                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-download">
+                                                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                                                    <polyline points="7 10 12 15 17 10" />
+                                                                    <line x1="12" x2="12" y1="15" y2="3" />
+                                                                </svg>
+                                                            </a>
+                                                        ) : (
+                                                            <>
+                                                                {v.contratos && v.contratos.length > 0 && v.contratos[0].token_acceso && v.contratos[0].estado !== 2 && (
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            const link = `${window.location.origin}/firma/${v.contratos?.[0]?.token_acceso}`;
+                                                                            navigator.clipboard.writeText(link);
+                                                                            alert("Link copiado al portapapeles: " + link);
+                                                                        }}
+                                                                        className="inline-flex items-center justify-center p-1.5 text-amber-600 bg-amber-50 rounded hover:bg-amber-100 hover:text-amber-800 transition-colors"
+                                                                        title="Copiar Link de Firma"
+                                                                    >
+                                                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-link"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg>
+                                                                    </button>
+                                                                )}
+                                                                <button
+                                                                    onClick={async () => {
+                                                                        try {
+                                                                            const detailedData = await solicitudesApi.getById(v.idsolicitud);
+                                                                            setSelectedSolicitud(detailedData);
+                                                                            setShowPreview(true);
+                                                                        } catch (e) {
+                                                                            console.error("Error fetching detail for contract preview", e);
+                                                                        }
+                                                                    }}
+                                                                    className="inline-flex items-center justify-center p-1.5 text-blue-600 bg-blue-50 rounded hover:bg-blue-100 hover:text-blue-800 transition-colors"
+                                                                    title="Crear/Ver Contrato"
+                                                                >
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /><path d="M16 13H8" /><path d="M16 17H8" /><path d="M10 9H8" /></svg>
+                                                                </button>
+                                                            </>
+                                                        )}
+                                                    </div>
                                                 </td>
                                             </tr>
                                         );

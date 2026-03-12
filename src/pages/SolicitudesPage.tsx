@@ -461,7 +461,20 @@ export default function SolicitudesPage() {
                                             ) : (
 
 
-                                                <div className="flex gap-3 ">
+                                                <div className="flex gap-3 flex-wrap">
+                                                    {viewData.contratos && viewData.contratos.length > 0 && viewData.contratos[0].token_acceso && viewData.contratos[0].estado !== 2 && (
+                                                        <button
+                                                            onClick={() => {
+                                                                const link = `${window.location.origin}/firma/${viewData.contratos?.[0]?.token_acceso}`;
+                                                                navigator.clipboard.writeText(link);
+                                                                alert("Link copiado al portapapeles: " + link);
+                                                            }}
+                                                            className="action-button bg-amber-600 hover:bg-amber-700 text-sm py-2 flex items-center gap-2"
+                                                        >
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-link"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg>
+                                                            Copiar Link de Firma
+                                                        </button>
+                                                    )}
                                                     <button className="ghost-button text-sm py-2" onClick={handleOpenPreview} disabled={contratoLoading}>
                                                         Generar Contrato
                                                     </button>
