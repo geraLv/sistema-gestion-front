@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useCreateCliente, useUpdateCliente, useCliente } from "../../hooks/useClientes";
 import { localidadesApi } from "../../api/endpoints";
+import { SearchableSelect } from "../ui/SearchableSelect";
 
 interface ClienteFormProps {
     id?: number;
@@ -135,24 +136,18 @@ export function ClienteForm({ id, onSuccess, onCancel }: ClienteFormProps) {
                 />
             </div>
             <div>
-                <label className="block text-sm font-semibold mb-1">
-                    Localidad *
-                </label>
-                <select
+                <SearchableSelect
+                    label="Localidad *"
+                    options={localidades.map((loc: any) => ({
+                        value: String(loc.idlocalidad),
+                        label: loc.nombre || "Sin nombre",
+                    }))}
                     value={formData.localidadId}
-                    onChange={(e) =>
-                        setFormData({ ...formData, localidadId: e.target.value })
+                    onChange={(val) =>
+                        setFormData({ ...formData, localidadId: String(val) })
                     }
-                    className="w-full input-sleek"
-                    required
-                >
-                    <option value="">Seleccionar localidad</option>
-                    {localidades.map((loc: any) => (
-                        <option key={loc.idlocalidad} value={loc.idlocalidad}>
-                            {loc.nombre}
-                        </option>
-                    ))}
-                </select>
+                    placeholder="Seleccionar localidad"
+                />
             </div>
             <div>
                 <label className="block text-sm font-semibold mb-1">

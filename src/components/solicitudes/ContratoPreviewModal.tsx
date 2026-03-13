@@ -2,6 +2,60 @@ import { useState, useEffect, useRef } from "react";
 import SignatureCanvas from "react-signature-canvas";
 import { Modal } from "../ui/Modal";
 
+// Utility: convert a number to Spanish words
+function numberToSpanishWords(n: number): string {
+    if (n === 0) return "cero";
+    const ones = ["", "un", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve",
+        "diez", "once", "doce", "trece", "catorce", "quince", "dieciséis", "diecisiete", "dieciocho", "diecinueve", "veinte"];
+    const tens = ["", "", "veinti", "treinta", "cuarenta", "cincuenta", "sesenta", "setenta", "ochenta", "noventa"];
+    const hundreds = ["", "ciento", "doscientos", "trescientos", "cuatrocientos", "quinientos", "seiscientos", "setecientos", "ochocientos", "novecientos"];
+
+    const convertGroup = (num: number): string => {
+        if (num === 0) return "";
+        if (num === 100) return "cien";
+        if (num <= 20) return ones[num];
+        if (num < 30) return "veinti" + ones[num - 20];
+        if (num < 100) {
+            const t = Math.floor(num / 10);
+            const o = num % 10;
+            return tens[t] + (o ? " y " + ones[o] : "");
+        }
+        const h = Math.floor(num / 100);
+        const rest = num % 100;
+        return hundreds[h] + (rest ? " " + convertGroup(rest) : "");
+    };
+
+    const abs = Math.abs(Math.floor(n));
+    const intPart = Math.floor(abs);
+    const decPart = Math.round((n - intPart) * 100);
+
+    let result = "";
+    if (intPart === 0) {
+        result = "cero";
+    } else if (intPart >= 1000000) {
+        const millions = Math.floor(intPart / 1000000);
+        const rest = intPart % 1000000;
+        result = (millions === 1 ? "un millón" : convertGroup(millions) + " millones") + (rest ? " " + convertBelow(rest) : "");
+    } else {
+        result = convertBelow(intPart);
+    }
+
+    function convertBelow(num: number): string {
+        if (num === 0) return "";
+        if (num < 1000) return convertGroup(num);
+        const thousands = Math.floor(num / 1000);
+        const rest = num % 1000;
+        const tStr = thousands === 1 ? "mil" : convertGroup(thousands) + " mil";
+        return tStr + (rest ? " " + convertGroup(rest) : "");
+    }
+
+    if (decPart > 0) {
+        result += " con " + convertGroup(decPart) + "/100";
+    }
+
+    return result.charAt(0).toUpperCase() + result.slice(1);
+}
+
 interface ContratoPreviewModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -24,9 +78,7 @@ export function ContratoPreviewModal({
         clienteLocalidad: "",
         clienteTelefono: "",
         productoNombre: "",
-        monto: 0,
-        cantidadCuotas: 0,
-        totalAPagar: 0,
+
         vehNuevo: "",
         vehUsado: "",
         nroOp: "",
@@ -66,9 +118,7 @@ export function ContratoPreviewModal({
                 clienteLocalidad: solicitudData.cliente?.localidad?.nombre || "",
                 clienteTelefono: solicitudData.cliente?.telefono || "",
                 productoNombre: solicitudData.producto?.descripcion || solicitudData.producto_descripcion || "",
-                monto: solicitudData.monto || 0,
-                cantidadCuotas: solicitudData.cantidadcuotas || 0,
-                totalAPagar: solicitudData.totalapagar || 0,
+
                 vehNuevo: "",
                 vehUsado: "",
                 nroOp: solicitudData.nrosolicitud?.toString() || "",
@@ -91,10 +141,22 @@ export function ContratoPreviewModal({
                 observaciones2: "",
                 ciudad: solicitudData.cliente?.localidad?.nombre || "",
                 recibiDe: solicitudData.cliente?.appynom || solicitudData.appynom || "",
-                sumaNum: "",
-                sumaLetras: "",
+                sumaNum: (() => {
+                    const m = solicitudData.monto || 0;
+                    const c = solicitudData.cantidadcuotas || 1;
+                    return c > 0 ? (m / c).toFixed(2) : "0";
+                })(),
+                sumaLetras: (() => {
+                    const m = solicitudData.monto || 0;
+                    const c = solicitudData.cantidadcuotas || 1;
+                    return c > 0 ? numberToSpanishWords(m / c) : "";
+                })(),
                 pagoPedidoNro: solicitudData.nrosolicitud?.toString() || "",
-                sonPesos: "",
+                sonPesos: (() => {
+                    const m = solicitudData.monto || 0;
+                    const c = solicitudData.cantidadcuotas || 1;
+                    return c > 0 ? (m / c).toFixed(2) : "0";
+                })(),
                 aclaracionProductor: "",
                 firmaProductor: ""
             });
@@ -106,10 +168,7 @@ export function ContratoPreviewModal({
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: Number(value) }));
-    };
+
 
     const sigCanvasRef = useRef<SignatureCanvas>(null);
 
@@ -310,36 +369,7 @@ export function ContratoPreviewModal({
                             <label className="block text-xs font-medium text-slate-700 mb-1">SON $</label>
                             <input type="text" name="sonPesos" value={formData.sonPesos} onChange={handleChange} className="w-full px-2 py-1 text-sm border border-slate-300 rounded focus:ring-blue-500 focus:border-blue-500" />
                         </div>
-                        <div>
-                            <label className="block text-xs font-medium text-slate-700 mb-1">Monto (Capital)</label>
-                            <input
-                                type="number"
-                                name="monto"
-                                value={formData.monto}
-                                onChange={handleNumberChange}
-                                className="w-full px-2 py-1 border border-slate-300 rounded focus:ring-blue-500 focus:border-blue-500"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-medium text-slate-700 mb-1">Cantidad de Cuotas</label>
-                            <input
-                                type="number"
-                                name="cantidadCuotas"
-                                value={formData.cantidadCuotas}
-                                onChange={handleNumberChange}
-                                className="w-full px-2 py-1 border border-slate-300 rounded focus:ring-blue-500 focus:border-blue-500"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-medium text-slate-700 mb-1">Total a Pagar (Financiado)</label>
-                            <input
-                                type="number"
-                                name="totalAPagar"
-                                value={formData.totalAPagar}
-                                onChange={handleNumberChange}
-                                className="w-full px-2 py-1 border border-slate-300 rounded focus:ring-blue-500 focus:border-blue-500"
-                            />
-                        </div>
+
                     </div>
 
                     {/* CLAUSULAS DEL CONTRATO */}

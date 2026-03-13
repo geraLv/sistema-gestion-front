@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import Layout from "../components/Layout";
 import { ErrorState, LoadingState } from "../components/Status";
 import { localidadesApi, reportesApi } from "../api/endpoints";
+import { SearchableSelect } from "../components/ui/SearchableSelect";
 import "./ImpresionesPage.css";
 
 interface LocalidadOption {
@@ -242,19 +243,16 @@ export default function ImpresionesPage() {
               />
             </div>
             <div className="legacy-field">
-              <label htmlFor="localidadMes">Localidad (opcional)</label>
-              <select
-                id="localidadMes"
+              <SearchableSelect
+                label="Localidad (opcional)"
+                options={localidades.map((l) => ({
+                  value: String(l.idlocalidad),
+                  label: l.nombre,
+                }))}
                 value={localidadId}
-                onChange={(e) => setLocalidadId(e.target.value)}
-              >
-                <option value="">Seleccione una localidad</option>
-                {localidades.map((l) => (
-                  <option key={l.idlocalidad} value={l.idlocalidad}>
-                    {l.nombre}
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setLocalidadId(String(val))}
+                placeholder="Seleccione una localidad"
+              />
             </div>
             <div className="legacy-field">
               <label>
@@ -289,19 +287,16 @@ export default function ImpresionesPage() {
             <h3>Recibos por Localidad</h3>
             <p>Genera el PDF filtrado por localidad y mes.</p>
             <div className="legacy-field">
-              <label htmlFor="localidadRecibo">Localidad</label>
-              <select
-                id="localidadRecibo"
+              <SearchableSelect
+                label="Localidad"
+                options={localidades.map((l) => ({
+                  value: String(l.idlocalidad),
+                  label: l.nombre,
+                }))}
                 value={localidadId}
-                onChange={(e) => setLocalidadId(e.target.value)}
-              >
-                <option value="">Seleccione una localidad</option>
-                {localidades.map((l) => (
-                  <option key={l.idlocalidad} value={l.idlocalidad}>
-                    {l.nombre}
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setLocalidadId(String(val))}
+                placeholder="Seleccione una localidad"
+              />
             </div>
             <div className="legacy-field">
               <label htmlFor="mesLocalidad">Mes</label>
