@@ -127,7 +127,7 @@ export function ContratoPreviewModal({
                 fechaAnio: new Date().getFullYear().toString().slice(2),
                 prodCod: "",
                 estadoCivil: "",
-                fNac: "",
+                fNac: (solicitudData.cliente?.fecha_nacimiento ? new Date(solicitudData.cliente.fecha_nacimiento).toLocaleDateString('es-AR', { timeZone: 'UTC' }) : ""),
                 hijos: "",
                 conyugeNombre: "",
                 conyugeDni: "",

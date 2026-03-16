@@ -28,6 +28,7 @@ export interface Cliente {
   localidadId: number;
   localidad?: Localidad;
   estado: number;
+  fecha_nacimiento?: string;
 
   // Raw DB fields
   appynom?: string;

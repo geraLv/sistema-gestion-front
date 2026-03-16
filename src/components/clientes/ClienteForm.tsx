@@ -17,6 +17,7 @@ export function ClienteForm({ id, onSuccess, onCancel }: ClienteFormProps) {
         telefono: "",
         email: "",
         localidadId: "",
+        fecha_nacimiento: "",
         estado: "1",
     });
     const [formError, setFormError] = useState("");
@@ -41,6 +42,7 @@ export function ClienteForm({ id, onSuccess, onCancel }: ClienteFormProps) {
                 telefono: clienteData.telefono || "",
                 email: clienteData.email || "",
                 localidadId: String(clienteData.relalocalidad || clienteData.localidadId || ""),
+                fecha_nacimiento: clienteData.fecha_nacimiento ? clienteData.fecha_nacimiento.split('T')[0] : "",
                 estado: String(clienteData.condicion || clienteData.estado || 1),
             });
         }
@@ -78,6 +80,7 @@ export function ClienteForm({ id, onSuccess, onCancel }: ClienteFormProps) {
             telefono: formData.telefono,
             email: formData.email,
             selectLocalidades: parseInt(formData.localidadId, 10),
+            fecha_nacimiento: formData.fecha_nacimiento || undefined,
             condicion: parseInt(formData.estado, 10),
         };
 
@@ -147,6 +150,19 @@ export function ClienteForm({ id, onSuccess, onCancel }: ClienteFormProps) {
                         setFormData({ ...formData, localidadId: String(val) })
                     }
                     placeholder="Seleccionar localidad"
+                />
+            </div>
+            <div>
+                <label className="block text-sm font-semibold mb-1">
+                    Fecha de Nacimiento
+                </label>
+                <input
+                    type="date"
+                    value={formData.fecha_nacimiento}
+                    onChange={(e) =>
+                        setFormData({ ...formData, fecha_nacimiento: e.target.value })
+                    }
+                    className="w-full input-sleek"
                 />
             </div>
             <div>
