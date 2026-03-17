@@ -33,6 +33,7 @@ export default function ImpresionesPage() {
   const [localidadId, setLocalidadId] = useState("");
   const [mesLocalidad, setMesLocalidad] = useState("");
   const [sinFecha, setSinFecha] = useState(false);
+  const [conFirma, setConFirma] = useState(false);
 
   const [estadoXlsx, setEstadoXlsx] = useState("impagas");
   const [mesXlsx, setMesXlsx] = useState("");
@@ -100,6 +101,14 @@ export default function ImpresionesPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const executePrint = (actionFn: (firma?: FirmaData) => Promise<void>) => {
+    if (conFirma) {
+      executeWithFirma(actionFn);
+      return;
+    }
+    executeWithoutFirma(actionFn);
   };
 
   const handleSignConfirm = async (firmaData: FirmaData) => {
@@ -191,8 +200,7 @@ export default function ImpresionesPage() {
     }
   };
 
-  // Dual-button helper
-  const DualPrintButtons = ({
+  const PrintButton = ({
     label,
     actionFn,
     disabled,
@@ -201,24 +209,13 @@ export default function ImpresionesPage() {
     actionFn: (firma?: FirmaData) => Promise<void>;
     disabled?: boolean;
   }) => (
-    <div className="flex gap-2 flex-wrap">
-      <button
-        className="legacy-button primary"
-        onClick={() => executeWithoutFirma(actionFn)}
-        disabled={disabled || loading}
-      >
-        {label}
-      </button>
-      <button
-        className="legacy-button"
-        onClick={() => executeWithFirma(actionFn)}
-        disabled={disabled || loading}
-        title="Imprimir con firma del productor"
-        style={{ display: "flex", alignItems: "center", gap: "4px" }}
-      >
-        ✍️ Con firma
-      </button>
-    </div>
+    <button
+      className="legacy-button primary"
+      onClick={() => executePrint(actionFn)}
+      disabled={disabled || loading}
+    >
+      {label}
+    </button>
   );
 
   return (
@@ -262,8 +259,18 @@ export default function ImpresionesPage() {
                 Sin fecha
               </label>
             </div>
+            <div className="legacy-field">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={conFirma}
+                  onChange={(e) => setConFirma(e.target.checked)}
+                />{" "}
+                Con firma
+              </label>
+            </div>
             <div className="legacy-actions">
-              <DualPrintButtons
+              <PrintButton
                 label="Imprimir recibo"
                 actionFn={reciboUltimaPagadaAction}
               />
@@ -308,12 +315,22 @@ export default function ImpresionesPage() {
                 Sin fecha
               </label>
             </div>
+            <div className="legacy-field">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={conFirma}
+                  onChange={(e) => setConFirma(e.target.checked)}
+                />{" "}
+                Con firma
+              </label>
+            </div>
             <div className="legacy-actions">
-              <DualPrintButtons
+              <PrintButton
                 label="Imprimir recibos del mes"
                 actionFn={recibosMesAction}
               />
-              <DualPrintButtons
+              <PrintButton
                 label="Recibos mes posterior"
                 actionFn={recibosMesPosteriorAction}
               />
@@ -355,8 +372,18 @@ export default function ImpresionesPage() {
                 Sin fecha
               </label>
             </div>
+            <div className="legacy-field">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={conFirma}
+                  onChange={(e) => setConFirma(e.target.checked)}
+                />{" "}
+                Con firma
+              </label>
+            </div>
             <div className="legacy-actions">
-              <DualPrintButtons
+              <PrintButton
                 label="Imprimir por localidad"
                 actionFn={recibosPorLocalidadAction}
               />
