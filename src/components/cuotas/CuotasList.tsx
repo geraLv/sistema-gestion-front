@@ -4,6 +4,7 @@ import { type ColumnDef } from "@tanstack/react-table";
 import { Eye, DollarSign, Edit, Trash2 } from "lucide-react";
 import { useCuotas, useDeleteCuota, usePagarMultiplesCuotas } from "../../hooks/useCuotas";
 import { CuotaPayMultipleModal } from "./CuotaPayMultipleModal";
+import { ReciboSignModal } from "../solicitudes/ReciboSignModal";
 import { cuotasApi, reportesApi } from "../../api/endpoints";
 import { DataTable } from "../ui/DataTable";
 import { FilterBar } from "../ui/FilterBar";
@@ -44,6 +45,11 @@ export function CuotasList({ onView, onEdit, onPay, filtro, idsolicitud, isModal
     const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
     const [showPayMultipleModal, setShowPayMultipleModal] = useState(false);
     const [cuotasToPay, setCuotasToPay] = useState<any[]>([]);
+
+    // Signature Modal State
+    const [signModalOpen, setSignModalOpen] = useState(false);
+    const [signLoading, setSignLoading] = useState(false);
+    const [pendingSignAction, setPendingSignAction] = useState<((firma?: { firmaProductor: string; aclaracionProductor: string }) => Promise<void>) | null>(null);
 
     // When in modal mode with a specific solicitud, use the dedicated endpoint
     const solicitudQuery = useQuery({
@@ -101,7 +107,7 @@ export function CuotasList({ onView, onEdit, onPay, filtro, idsolicitud, isModal
         setShowPayMultipleModal(false);
     };
 
-    const handlePrintSelected = async () => {
+    const handleDownloadMultiple = async (firma?: { firmaProductor: string; aclaracionProductor: string }) => {
         const selectedIds = Object.keys(rowSelection)
             .filter(key => rowSelection[key])
             .map(key => {
@@ -117,22 +123,37 @@ export function CuotasList({ onView, onEdit, onPay, filtro, idsolicitud, isModal
         }
 
         setIsDownloading(true);
+        if (firma) setSignLoading(true);
+        
         try {
-            const blob = await reportesApi.recibosMultiples(selectedIds);
+            const blob = await reportesApi.recibosMultiples(selectedIds, firma);
             const url = URL.createObjectURL(blob);
             const link = document.createElement("a");
             link.href = url;
-            link.download = "recibos-multiples.pdf";
+            link.download = firma ? "recibos-firmados.pdf" : "recibos-multiples.pdf";
             document.body.appendChild(link);
             link.click();
             link.remove();
             setTimeout(() => URL.revokeObjectURL(url), 1000);
+            setSignModalOpen(false);
         } catch (e) {
             console.error(e);
             alert("Error descargando recibos. Verifique que las cuotas estén pagadas.");
         } finally {
             setIsDownloading(false);
+            setSignLoading(false);
         }
+    };
+
+    const handlePrintSelected = async () => {
+        await handleDownloadMultiple();
+    };
+
+    const handleOpenSignModal = () => {
+        setPendingSignAction(() => async (firma?: { firmaProductor: string; aclaracionProductor: string }) => {
+            await handleDownloadMultiple(firma);
+        });
+        setSignModalOpen(true);
     };
 
     // Helper to check if date is past
@@ -382,12 +403,25 @@ export function CuotasList({ onView, onEdit, onPay, filtro, idsolicitud, isModal
                                         )}
                                         title="Imprimir seleccionadas"
                                     >
-                                        {isDownloading ? (
+                                        {isDownloading && !signModalOpen ? (
                                             <span className="animate-spin mr-2">⏳</span>
                                         ) : (
                                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-printer"><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><path d="M6 9V3h12v6" /><rect x="6" y="14" width="12" height="8" ry="1" /></svg>
                                         )}
                                         Descargar PDF ({selectedCount})
+                                    </button>
+                                )}
+                                {selectedCount > 0 && (
+                                    <button
+                                        onClick={handleOpenSignModal}
+                                        disabled={isDownloading}
+                                        className={cn(
+                                            "bg-white text-slate-700 border border-slate-300 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-50 transition-colors flex items-center gap-2 animate-in fade-in slide-in-from-right-4 w-full md:w-auto justify-center",
+                                            isDownloading && "opacity-50 cursor-not-allowed"
+                                        )}
+                                        title="Firmar y descargar seleccionadas"
+                                    >
+                                        firmar e imprimir
                                     </button>
                                 )}
                                 {selectedPagablesCount > 0 && (
@@ -426,6 +460,13 @@ export function CuotasList({ onView, onEdit, onPay, filtro, idsolicitud, isModal
                     onConfirm={handleConfirmMultiplePayment}
                 />
             )}
+
+            <ReciboSignModal
+                isOpen={signModalOpen}
+                onClose={() => setSignModalOpen(false)}
+                onConfirm={(firma) => pendingSignAction?.(firma)}
+                isLoading={signLoading}
+            />
         </div>
     );
 }

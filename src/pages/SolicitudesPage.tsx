@@ -13,11 +13,17 @@ import { CuotaDetailModal } from "../components/cuotas/CuotaDetailModal";
 import { CuotaEditModal } from "../components/cuotas/CuotaEditModal";
 import { CuotaPayModal } from "../components/cuotas/CuotaPayModal";
 import { CuotasList } from "../components/cuotas/CuotasList";
+import { ReciboSignModal } from "../components/solicitudes/ReciboSignModal";
 import { CalendarDays, Info, X } from "lucide-react";
 
 export default function SolicitudesPage() {
     const [viewMode, setViewMode] = useState<"list" | "create" | "edit">("list");
     const [selectedId, setSelectedId] = useState<number | null>(null);
+
+    // Signature modal state
+    const [signModalOpen, setSignModalOpen] = useState(false);
+    const [signLoading, setSignLoading] = useState(false);
+    const [pendingSignAction, setPendingSignAction] = useState<((firma?: { firmaProductor: string; aclaracionProductor: string }) => Promise<void>) | null>(null);
 
     // States for "Ver Detalle" (Classic view) and context for Plan
     const [showView, setShowView] = useState(false);
@@ -235,6 +241,34 @@ export default function SolicitudesPage() {
         } finally {
             setReciboLoading(false);
         }
+    };
+
+    const handleDownloadPagadas = async (firma?: { firmaProductor: string; aclaracionProductor: string }) => {
+        if (!viewData) return;
+        setSignLoading(true);
+        try {
+            const blob = await reportesApi.recibosSolicitudPagados(viewData.id || viewData.idsolicitud, firma);
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `recibos-pagados-solicitud-${viewData.id || viewData.idsolicitud}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+            setSignModalOpen(false);
+        } catch (e) {
+            alert("Error generando reporte o no hay cuotas pagadas");
+        } finally {
+            setSignLoading(false);
+        }
+    };
+
+    const handleOpenSignModal = () => {
+        setPendingSignAction(() => async (firma?: { firmaProductor: string; aclaracionProductor: string }) => {
+            await handleDownloadPagadas(firma);
+        });
+        setSignModalOpen(true);
     };
 
     const handleOpenPreview = () => {
@@ -576,25 +610,20 @@ export default function SolicitudesPage() {
                                         </button>
                                         <button
                                             onClick={async () => {
-                                                try {
-                                                    const blob = await reportesApi.recibosSolicitudPagados(viewData.id || viewData.idsolicitud);
-                                                    const url = URL.createObjectURL(blob);
-                                                    const link = document.createElement("a");
-                                                    link.href = url;
-                                                    link.download = `recibos-pagados-solicitud-${viewData.id || viewData.idsolicitud}.pdf`;
-                                                    document.body.appendChild(link);
-                                                    link.click();
-                                                    link.remove();
-                                                    setTimeout(() => URL.revokeObjectURL(url), 1000);
-                                                } catch (e) {
-                                                    alert("Error generando reporte o no hay cuotas pagadas");
-                                                }
+                                                await handleDownloadPagadas();
                                             }}
                                             className="ghost-button text-sm py-2 flex items-center gap-2"
                                             title="Descargar todos los recibos pagados"
                                         >
                                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-printer"><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><path d="M6 9V3h12v6" /><rect x="6" y="14" width="12" height="8" ry="1" /></svg>
                                             Descargar Pagadas
+                                        </button>
+                                        <button
+                                            onClick={handleOpenSignModal}
+                                            className="ghost-button text-sm py-2 flex items-center gap-2"
+                                            title="Firmar y descargar recibos pagados"
+                                        >
+                                            firmar e imprimir
                                         </button>
                                         <button
                                             onClick={() => handleAddCuotasPrompt(viewData)}
@@ -685,6 +714,13 @@ export default function SolicitudesPage() {
                         isLoading={contratoLoading}
                     />
                 )}
+
+                <ReciboSignModal
+                    isOpen={signModalOpen}
+                    onClose={() => setSignModalOpen(false)}
+                    onConfirm={(firma) => pendingSignAction?.(firma)}
+                    isLoading={signLoading}
+                />
             </div>
         </Layout>
     );

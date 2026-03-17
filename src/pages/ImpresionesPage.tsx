@@ -3,12 +3,15 @@ import Layout from "../components/Layout";
 import { ErrorState, LoadingState } from "../components/Status";
 import { localidadesApi, reportesApi } from "../api/endpoints";
 import { SearchableSelect } from "../components/ui/SearchableSelect";
+import { ReciboSignModal } from "../components/solicitudes/ReciboSignModal";
 import "./ImpresionesPage.css";
 
 interface LocalidadOption {
   idlocalidad: number;
   nombre: string;
 }
+
+type FirmaData = { firmaProductor: string; aclaracionProductor: string };
 
 function buildMonthValue(value: string) {
   if (!value) return "";
@@ -34,6 +37,10 @@ export default function ImpresionesPage() {
   const [estadoXlsx, setEstadoXlsx] = useState("impagas");
   const [mesXlsx, setMesXlsx] = useState("");
   const [modoXlsx, setModoXlsx] = useState("resumen");
+
+  // Signature modal state
+  const [signModalOpen, setSignModalOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<(() => Promise<void>) | null>(null);
 
   useEffect(() => {
     loadLocalidades();
@@ -69,86 +76,96 @@ export default function ImpresionesPage() {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
-  const handleReciboUltimaPagada = async () => {
-    if (!nroSolicitud || nroSolicitud.trim() === "") {
-      setError("Debe ingresar un Nº de Solicitud válido.");
-      return;
-    }
+  // Helper: execute a receipt action, optionally with firma
+  const executeWithFirma = (actionFn: (firma?: FirmaData) => Promise<void>) => {
+    // Store the action so the modal can call it with firma data
+    setPendingAction(() => async (firma?: FirmaData) => {
+      await actionFn(firma);
+    });
+    setSignModalOpen(true);
+  };
+
+  const executeWithoutFirma = async (actionFn: (firma?: FirmaData) => Promise<void>) => {
     setError(null);
     setLoading(true);
     try {
-      const blob = await reportesApi.reciboUltimaPagada(nroSolicitud, sinFecha);
-      openBlob(blob, `recibo-ultima-pagada-${nroSolicitud}.pdf`);
+      await actionFn(undefined);
     } catch (err: any) {
       console.error(err);
       if (err.response?.status === 404) {
-        setError("La solicitud no tiene cuotas pagadas o no existe.");
+        setError("No se encontraron datos para generar el recibo.");
       } else {
-        setError("No se pudo generar el recibo.");
+        setError("No se pudo generar el reporte.");
       }
     } finally {
       setLoading(false);
     }
   };
 
-  const handleRecibosMes = async () => {
+  const handleSignConfirm = async (firmaData: FirmaData) => {
+    if (!pendingAction) return;
+    setSignModalOpen(false);
     setError(null);
     setLoading(true);
     try {
-      const blob = await reportesApi.recibosMes(
-        buildMonthValue(mesRecibos),
-        localidadId ? Number(localidadId) : undefined,
-        sinFecha,
-      );
-      const mesLabel = mesRecibos || "actual";
-      openBlob(blob, `recibos-${mesLabel}.pdf`);
-    } catch (err) {
+      await (pendingAction as any)(firmaData);
+    } catch (err: any) {
       console.error(err);
-      setError("No se pudo generar el PDF del mes.");
+      if (err.response?.status === 404) {
+        setError("No se encontraron datos para generar el recibo.");
+      } else {
+        setError("No se pudo generar el reporte.");
+      }
     } finally {
       setLoading(false);
+      setPendingAction(null);
     }
   };
 
-  const handleRecibosMesPosterior = async () => {
-    setError(null);
-    setLoading(true);
-    try {
-      const loc = localidadId ? Number(localidadId) : undefined;
-      const blob = loc
-        ? await reportesApi.recibosMesPosteriorPorLocalidad(loc, sinFecha)
-        : await reportesApi.recibosMesPosterior(sinFecha);
-      openBlob(blob, "recibos-mes-posterior.pdf");
-    } catch (err) {
-      console.error(err);
-      setError("No se pudo generar el PDF del mes posterior.");
-    } finally {
-      setLoading(false);
+  // --- Receipt action factories ---
+
+  const reciboUltimaPagadaAction = async (firma?: FirmaData) => {
+    if (!nroSolicitud || nroSolicitud.trim() === "") {
+      setError("Debe ingresar un Nº de Solicitud válido.");
+      return;
     }
+    const blob = await reportesApi.reciboUltimaPagada(nroSolicitud, sinFecha, firma);
+    openBlob(blob, `recibo-ultima-pagada-${nroSolicitud}.pdf`);
   };
 
-  const handleRecibosPorLocalidad = async () => {
+  const recibosMesAction = async (firma?: FirmaData) => {
+    const blob = await reportesApi.recibosMes(
+      buildMonthValue(mesRecibos),
+      localidadId ? Number(localidadId) : undefined,
+      sinFecha,
+      firma,
+    );
+    const mesLabel = mesRecibos || "actual";
+    openBlob(blob, `recibos-${mesLabel}.pdf`);
+  };
+
+  const recibosMesPosteriorAction = async (firma?: FirmaData) => {
+    const loc = localidadId ? Number(localidadId) : undefined;
+    const blob = loc
+      ? await reportesApi.recibosMesPosteriorPorLocalidad(loc, sinFecha, firma)
+      : await reportesApi.recibosMesPosterior(sinFecha, firma);
+    openBlob(blob, "recibos-mes-posterior.pdf");
+  };
+
+  const recibosPorLocalidadAction = async (firma?: FirmaData) => {
     const loc = Number(localidadId);
     if (!Number.isFinite(loc) || loc <= 0) {
       setError("Debe seleccionar una localidad.");
       return;
     }
-    setError(null);
-    setLoading(true);
-    try {
-      const blob = await reportesApi.recibosMesPorLocalidad(
-        loc,
-        buildMonthValue(mesLocalidad),
-        sinFecha,
-      );
-      const mesLabel = mesLocalidad || "actual";
-      openBlob(blob, `recibos-${mesLabel}-loc-${loc}.pdf`);
-    } catch (err) {
-      console.error(err);
-      setError("No se pudo generar el PDF por localidad.");
-    } finally {
-      setLoading(false);
-    }
+    const blob = await reportesApi.recibosMesPorLocalidad(
+      loc,
+      buildMonthValue(mesLocalidad),
+      sinFecha,
+      firma,
+    );
+    const mesLabel = mesLocalidad || "actual";
+    openBlob(blob, `recibos-${mesLabel}-loc-${loc}.pdf`);
   };
 
   const handleXlsx = async () => {
@@ -173,6 +190,36 @@ export default function ImpresionesPage() {
       setLoading(false);
     }
   };
+
+  // Dual-button helper
+  const DualPrintButtons = ({
+    label,
+    actionFn,
+    disabled,
+  }: {
+    label: string;
+    actionFn: (firma?: FirmaData) => Promise<void>;
+    disabled?: boolean;
+  }) => (
+    <div className="flex gap-2 flex-wrap">
+      <button
+        className="legacy-button primary"
+        onClick={() => executeWithoutFirma(actionFn)}
+        disabled={disabled || loading}
+      >
+        {label}
+      </button>
+      <button
+        className="legacy-button"
+        onClick={() => executeWithFirma(actionFn)}
+        disabled={disabled || loading}
+        title="Imprimir con firma del productor"
+        style={{ display: "flex", alignItems: "center", gap: "4px" }}
+      >
+        ✍️ Con firma
+      </button>
+    </div>
+  );
 
   return (
     <Layout>
@@ -216,13 +263,10 @@ export default function ImpresionesPage() {
               </label>
             </div>
             <div className="legacy-actions">
-              <button
-                className="legacy-button primary"
-                onClick={handleReciboUltimaPagada}
-                disabled={loading}
-              >
-                Imprimir recibo
-              </button>
+              <DualPrintButtons
+                label="Imprimir recibo"
+                actionFn={reciboUltimaPagadaAction}
+              />
             </div>
             {loading && <LoadingState label="Generando..." />}
           </section>
@@ -265,20 +309,14 @@ export default function ImpresionesPage() {
               </label>
             </div>
             <div className="legacy-actions">
-              <button
-                className="legacy-button primary"
-                onClick={handleRecibosMes}
-                disabled={loading}
-              >
-                Imprimir recibos del mes
-              </button>
-              <button
-                className="legacy-button"
-                onClick={handleRecibosMesPosterior}
-                disabled={loading}
-              >
-                Recibos mes posterior
-              </button>
+              <DualPrintButtons
+                label="Imprimir recibos del mes"
+                actionFn={recibosMesAction}
+              />
+              <DualPrintButtons
+                label="Recibos mes posterior"
+                actionFn={recibosMesPosteriorAction}
+              />
             </div>
             {loading && <LoadingState label="Generando..." />}
           </section>
@@ -318,13 +356,10 @@ export default function ImpresionesPage() {
               </label>
             </div>
             <div className="legacy-actions">
-              <button
-                className="legacy-button primary"
-                onClick={handleRecibosPorLocalidad}
-                disabled={loading}
-              >
-                Imprimir por localidad
-              </button>
+              <DualPrintButtons
+                label="Imprimir por localidad"
+                actionFn={recibosPorLocalidadAction}
+              />
             </div>
             {loading && <LoadingState label="Generando..." />}
           </section>
@@ -383,6 +418,13 @@ export default function ImpresionesPage() {
           devolverá un mensaje de error.
         </p>
       </div>
+
+      <ReciboSignModal
+        isOpen={signModalOpen}
+        onClose={() => { setSignModalOpen(false); setPendingAction(null); }}
+        onConfirm={handleSignConfirm}
+        isLoading={loading}
+      />
     </Layout>
   );
 }

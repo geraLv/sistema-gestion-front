@@ -502,69 +502,69 @@ export const vendedoresAdminApi = {
 
 // Reportes
 export const reportesApi = {
-  reciboCuota: async (idcuota: number, sinFecha?: boolean) => {
+  reciboCuota: async (idcuota: number, sinFecha?: boolean, firmaData?: { firmaProductor: string; aclaracionProductor: string }) => {
     const response = await apiClient.post(
       "/reportes/recibos/cuota",
-      { idcuota, sinFecha: sinFecha || false },
+      { idcuota, sinFecha: sinFecha || false, firmaProductor: firmaData?.firmaProductor, aclaracionProductor: firmaData?.aclaracionProductor },
       { responseType: "blob" },
     );
     return response.data as Blob;
   },
 
-  reciboUltimaPagada: async (nroSolicitud: string, sinFecha?: boolean) => {
-    const response = await apiClient.get(
+  reciboUltimaPagada: async (nroSolicitud: string, sinFecha?: boolean, firmaData?: { firmaProductor: string; aclaracionProductor: string }) => {
+    const response = await apiClient.post(
       `/reportes/recibos/ultima-pagada/${nroSolicitud}`,
-      {
-        params: { sinFecha: sinFecha ? "true" : undefined },
-        responseType: "blob"
-      }
+      { sinFecha: sinFecha || false, firmaProductor: firmaData?.firmaProductor, aclaracionProductor: firmaData?.aclaracionProductor },
+      { responseType: "blob" }
     );
     return response.data as Blob;
   },
 
-  recibosSolicitudPagados: async (idsolicitud: number) => {
-    const response = await apiClient.get(
+  recibosSolicitudPagados: async (idsolicitud: number, firmaData?: { firmaProductor: string; aclaracionProductor: string }) => {
+    const response = await apiClient.post(
       `/reportes/recibos/solicitud/${idsolicitud}`,
+      { firmaProductor: firmaData?.firmaProductor, aclaracionProductor: firmaData?.aclaracionProductor },
       { responseType: "blob" },
     );
     return response.data as Blob;
   },
 
-  recibosMes: async (mes?: string, localidadId?: number, sinFecha?: boolean) => {
-    const response = await apiClient.get("/reportes/recibos/mes", {
-      params: { mes: mes || undefined, localidadId: localidadId || undefined, sinFecha: sinFecha ? "true" : undefined },
-      responseType: "blob",
-    });
-    console.log("recibos-mes", response);
-    return response.data as Blob;
-  },
-
-  recibosMesPosterior: async (sinFecha?: boolean) => {
-    const response = await apiClient.get("/reportes/recibos/mes-posterior", {
-      params: { sinFecha: sinFecha ? "true" : undefined },
+  recibosMes: async (mes?: string, localidadId?: number, sinFecha?: boolean, firmaData?: { firmaProductor: string; aclaracionProductor: string }) => {
+    const response = await apiClient.post("/reportes/recibos/mes", {
+      mes: mes || undefined, localidadId: localidadId || undefined, sinFecha: sinFecha || false,
+      firmaProductor: firmaData?.firmaProductor, aclaracionProductor: firmaData?.aclaracionProductor,
+    }, {
       responseType: "blob",
     });
     return response.data as Blob;
   },
 
-  recibosMesPorLocalidad: async (localidadId: number, mes?: string, sinFecha?: boolean) => {
-    const response = await apiClient.get(
+  recibosMesPosterior: async (sinFecha?: boolean, firmaData?: { firmaProductor: string; aclaracionProductor: string }) => {
+    const response = await apiClient.post("/reportes/recibos/mes-posterior", {
+      sinFecha: sinFecha || false,
+      firmaProductor: firmaData?.firmaProductor, aclaracionProductor: firmaData?.aclaracionProductor,
+    }, {
+      responseType: "blob",
+    });
+    return response.data as Blob;
+  },
+
+  recibosMesPorLocalidad: async (localidadId: number, mes?: string, sinFecha?: boolean, firmaData?: { firmaProductor: string; aclaracionProductor: string }) => {
+    const response = await apiClient.post(
       "/reportes/recibos/mes-por-localidad",
-      {
-        params: { localidadId, mes: mes || undefined, sinFecha: sinFecha ? "true" : undefined },
-        responseType: "blob",
-      },
+      { localidadId, mes: mes || undefined, sinFecha: sinFecha || false,
+        firmaProductor: firmaData?.firmaProductor, aclaracionProductor: firmaData?.aclaracionProductor },
+      { responseType: "blob" },
     );
     return response.data as Blob;
   },
 
-  recibosMesPosteriorPorLocalidad: async (localidadId: number, sinFecha?: boolean) => {
-    const response = await apiClient.get(
+  recibosMesPosteriorPorLocalidad: async (localidadId: number, sinFecha?: boolean, firmaData?: { firmaProductor: string; aclaracionProductor: string }) => {
+    const response = await apiClient.post(
       "/reportes/recibos/mes-posterior-por-localidad",
-      {
-        params: { localidadId, sinFecha: sinFecha ? "true" : undefined },
-        responseType: "blob",
-      },
+      { localidadId, sinFecha: sinFecha || false,
+        firmaProductor: firmaData?.firmaProductor, aclaracionProductor: firmaData?.aclaracionProductor },
+      { responseType: "blob" },
     );
     return response.data as Blob;
   },
@@ -585,10 +585,10 @@ export const reportesApi = {
     return response.data as Blob;
   },
 
-  recibosMultiples: async (idcuotas: number[]) => {
+  recibosMultiples: async (idcuotas: number[], firmaData?: { firmaProductor: string; aclaracionProductor: string }) => {
     const response = await apiClient.post(
       "/reportes/recibos/multiples",
-      { idcuotas },
+      { idcuotas, firmaProductor: firmaData?.firmaProductor, aclaracionProductor: firmaData?.aclaracionProductor },
       { responseType: "blob" },
     );
     return response.data as Blob;
