@@ -42,6 +42,7 @@ interface CuotaHoy {
   nrocuota: number;
   importe: number;
   fecha: string;
+  formapago?: string;
   nroSolicitud: string;
   clienteNombre: string;
   vendedorNombre?: string;
@@ -453,10 +454,12 @@ export default function DashboardPage() {
                   <table className="w-full">
                     <thead className="bg-slate-50/50">
                       <tr>
+                        {mesFilter && <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Fecha</th>}
                         <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Solicitud</th>
                         <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Cliente</th>
                         <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Vendedor</th>
                         <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Cuota Nro</th>
+                        <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Forma Pago</th>
                         <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Importe</th>
                       </tr>
                     </thead>
@@ -470,10 +473,12 @@ export default function DashboardPage() {
                       ) : (
                         paginatedCobros.map((c) => (
                           <tr key={c.id} className="hover:bg-slate-50/50 transition-colors">
+                            {mesFilter && <td className="px-4 py-3 text-sm text-slate-700 whitespace-nowrap">{new Date(c.fecha + "T00:00:00").toLocaleDateString("es-AR")}</td>}
                             <td className="px-4 py-3 text-sm font-medium text-slate-900">#{c.nroSolicitud}</td>
                             <td className="px-4 py-3 text-sm text-slate-700">{c.clienteNombre}</td>
                             <td className="px-4 py-3 text-sm text-slate-600">{c.vendedorNombre || "—"}</td>
                             <td className="px-4 py-3 text-sm text-center text-slate-600">{c.nrocuota}</td>
+                            <td className="px-4 py-3 text-sm text-center text-slate-600">{c.formapago || "—"}</td>
                             <td className="px-4 py-3 text-sm text-right font-semibold text-emerald-700">{fmt(c.importe)}</td>
                           </tr>
                         ))
@@ -482,7 +487,7 @@ export default function DashboardPage() {
                     {data.cuotasHoy.length > 0 && (
                       <tfoot className="bg-slate-50/80 border-t border-slate-200">
                         <tr>
-                          <td colSpan={4} className="px-4 py-2 text-xs font-semibold text-slate-500 uppercase">Total cobrado hoy</td>
+                          <td colSpan={mesFilter ? 6 : 5} className="px-4 py-2 text-xs font-semibold text-slate-500 uppercase">Total cobrado {mesFilter ? "en el mes" : "hoy"}</td>
                           <td className="px-4 py-2 text-right text-sm font-bold text-emerald-700">
                             {fmt(data.montoCobradasHoy)}
                           </td>

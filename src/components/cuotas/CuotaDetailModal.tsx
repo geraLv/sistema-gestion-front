@@ -144,6 +144,13 @@ export function CuotaDetailModal({
                         </div>
                     </div>
 
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                        <div className="text-xs font-medium text-slate-500">Cobrado Por</div>
+                        <div className="mt-1 text-sm font-semibold text-slate-900">
+                           {cuota.cobradoPor || (Number(cuota.estado) === 2 ? "N/A" : "-")}
+                        </div>
+                    </div>
+
                     {solicitudError && (
                         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700 sm:col-span-2">
                             Error cargando solicitud: {solicitudError}

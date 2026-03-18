@@ -23,6 +23,7 @@ export type CuotaColumn = {
     formapago?: string | null;
     fechaPago?: string;
     isVencida?: boolean;
+    cobradoPor?: string | null;
 };
 
 interface CuotasListProps {
@@ -258,6 +259,16 @@ export function CuotasList({ onView, onEdit, onPay, filtro, idsolicitud, isModal
             },
         },
         {
+            accessorKey: "cobradoPor",
+            header: "Cobrado Por",
+            cell: (info) => {
+                const user = info.getValue() as string | null | undefined;
+                if (!user && info.row.original.estado === 2) return <span className="text-slate-400 text-sm">N/A</span>;
+                if (!user) return <span className="text-slate-300 text-sm">-</span>;
+                return <span className="text-sm font-medium text-slate-700">{user}</span>;
+            },
+        },
+        {
             id: "actions",
             header: "Acciones",
             cell: (info) => {
@@ -345,6 +356,7 @@ export function CuotasList({ onView, onEdit, onPay, filtro, idsolicitud, isModal
         estado: c.estado,
         formapago: c.formapago,
         fechaPago: c.fecha,
+        cobradoPor: c.cobradoPor,
         raw: c
     }));
 
