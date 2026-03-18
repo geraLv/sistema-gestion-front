@@ -224,6 +224,21 @@ export const solicitudesApi = {
 
 // Cuotas
 export const cuotasApi = {
+  getMisRegistros: async (params?: { page?: number; pageSize?: number; mes?: string; q?: string }) => {
+    const response = await apiClient.get<ApiResponse<Cuota[]>>("/cuotas/mis-registros", {
+      params: {
+        page: params?.page || undefined,
+        pageSize: params?.pageSize || undefined,
+        mes: params?.mes || undefined,
+        q: params?.q || undefined,
+      },
+    });
+    return {
+      items: (response.data.data || []) as any[],
+      total: (response.data as any).total ?? 0,
+      totalRecaudado: (response.data as any).totalRecaudado ?? 0,
+    };
+  },
   getAll: async (filtro?: string, q?: string) => {
     const response = await apiClient.get<ApiResponse<Cuota[]>>("/cuotas", {
       params: { filtro, q },
@@ -596,8 +611,10 @@ export const reportesApi = {
 };
 
 export const dashboardApi = {
-  getSummary: async () => {
-    const response = await apiClient.get<ApiResponse<any>>("/dashboard");
+  getSummary: async (mes?: string) => {
+    const response = await apiClient.get<ApiResponse<any>>("/dashboard", {
+      params: { mes }
+    });
     return response.data.data || null;
   },
 };

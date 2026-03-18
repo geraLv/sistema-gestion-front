@@ -12,6 +12,7 @@ import ImpresionesPage from "./pages/ImpresionesPage";
 import AdminPage from "./pages/AdminPage";
 import MonitorPage from "./pages/MonitorPage";
 import MisVentasPage from "./pages/MisVentasPage";
+import MisRegistrosPage from "./pages/MisRegistrosPage";
 import FirmaContratoPage from "./pages/FirmaContratoPage";
 import { authApi } from "./api/endpoints";
 import useAuthStore from "./stores/authStore";
@@ -77,6 +78,14 @@ function App() {
           element={
             <ProtectedRoute>
               <MisVentasPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/mis-registros"
+          element={
+            <ProtectedRoute>
+              <MisRegistrosPage />
             </ProtectedRoute>
           }
         />

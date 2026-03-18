@@ -44,6 +44,7 @@ interface CuotaHoy {
   fecha: string;
   nroSolicitud: string;
   clienteNombre: string;
+  vendedorNombre?: string;
 }
 
 interface DashboardData {
@@ -89,18 +90,26 @@ export default function DashboardPage() {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [mesFilter, setMesFilter] = useState<string>("");
   const [activeTab, setActiveTab] = useState<"solicitudes" | "cobros">("solicitudes");
 
-  useEffect(() => {
-    loadDashboardData();
-  }, []);
+  const [pageSolicitudes, setPageSolicitudes] = useState(1);
+  const [pageCobros, setPageCobros] = useState(1);
+  const pageSize = 10;
 
-  const loadDashboardData = async () => {
+  useEffect(() => {
+    loadDashboardData(mesFilter);
+  }, [mesFilter]);
+
+  const loadDashboardData = async (mes?: string) => {
     try {
       setLoading(true);
       setError(null);
 
-      const summary = await dashboardApi.getSummary();
+      const summary = await dashboardApi.getSummary(mes);
+
+      setPageSolicitudes(1);
+      setPageCobros(1);
 
       setData({
         totalClientes: summary?.totals?.clientes || 0,
@@ -146,12 +155,40 @@ export default function DashboardPage() {
     </div>
   );
 
+  const totalPagesSolicitudes = Math.ceil(data.solicitudesHoy.length / pageSize);
+  const paginatedSolicitudes = data.solicitudesHoy.slice((pageSolicitudes - 1) * pageSize, pageSolicitudes * pageSize);
+
+  const totalPagesCobros = Math.ceil(data.cuotasHoy.length / pageSize);
+  const paginatedCobros = data.cuotasHoy.slice((pageCobros - 1) * pageSize, pageCobros * pageSize);
+
   return (
     <Layout>
       <div className="container mx-auto px-6 py-8 page-shell">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
-          <p className="text-slate-500">Resumen general del sistema</p>
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
+            <p className="text-slate-500">Resumen general del sistema</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <label htmlFor="mesFiltro" className="text-sm font-medium text-slate-700">
+              Ver datos de:
+            </label>
+            <input
+              type="month"
+              id="mesFiltro"
+              value={mesFilter}
+              onChange={(e) => setMesFilter(e.target.value)}
+              className="px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-700 shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+            />
+            {mesFilter && (
+              <button
+                onClick={() => setMesFilter("")}
+                className="text-sm text-purple-600 hover:text-purple-800 font-medium"
+              >
+                Limpiar (Ver Hoy)
+              </button>
+            )}
+          </div>
         </div>
 
         {error && <ErrorState message={error} />}
@@ -175,21 +212,21 @@ export default function DashboardPage() {
                 colorClass="bg-indigo-50 text-indigo-600"
               />
               <StatCard
-                label="Cuotas Cobradas (Hoy)"
+                label={`Cuotas Cobradas (${mesFilter ? "Mes" : "Hoy"})`}
                 value={data.cobradasHoy}
                 icon={CheckCircle}
                 colorClass="bg-green-50 text-green-600"
-                trend="Actividad de hoy"
+                trend={`Actividad del ${mesFilter ? "mes" : "día"}`}
               />
               <StatCard
-                label="Monto Cobrado (Hoy)"
+                label={`Monto Cobrado (${mesFilter ? "Mes" : "Hoy"})`}
                 value={fmt(data.montoCobradasHoy)}
                 icon={DollarSign}
                 colorClass="bg-emerald-50 text-emerald-600"
-                trend="Total recaudado hoy"
+                trend={`Total recaudado ${mesFilter ? "en el mes" : "hoy"}`}
               />
               <StatCard
-                label="Cuotas Vencidas (Hoy)"
+                label={`Cuotas Vencidas (${mesFilter ? "Mes" : "Hoy"})`}
                 value={data.vencidasHoy}
                 icon={AlertCircle}
                 colorClass="bg-red-50 text-red-600"
@@ -293,7 +330,7 @@ export default function DashboardPage() {
                         : "text-slate-500 hover:text-slate-700"
                       }`}
                   >
-                    Solicitudes del Día
+                    Solicitudes del {mesFilter ? "Mes" : "Día"}
                     <span className={`ml-2 text-xs px-1.5 py-0.5 rounded-full ${activeTab === "solicitudes" ? "bg-purple-100 text-purple-700" : "bg-slate-200 text-slate-500"
                       }`}>
                       {data.solicitudesHoy.length}
@@ -306,7 +343,7 @@ export default function DashboardPage() {
                         : "text-slate-500 hover:text-slate-700"
                       }`}
                   >
-                    Cobros del Día
+                    Cobros del {mesFilter ? "Mes" : "Día"}
                     <span className={`ml-2 text-xs px-1.5 py-0.5 rounded-full ${activeTab === "cobros" ? "bg-green-100 text-green-700" : "bg-slate-200 text-slate-500"
                       }`}>
                       {data.cuotasHoy.length}
@@ -341,11 +378,11 @@ export default function DashboardPage() {
                       {data.solicitudesHoy.length === 0 ? (
                         <tr>
                           <td colSpan={8} className="px-6 py-10 text-center text-slate-400 text-sm">
-                            No se crearon solicitudes hoy
+                            No se encontraron solicitudes
                           </td>
                         </tr>
                       ) : (
-                        data.solicitudesHoy.map((s) => {
+                        paginatedSolicitudes.map((s) => {
                           const est = estadoLabel[s.estado] ?? { label: "—", color: "bg-gray-100 text-gray-600" };
                           return (
                             <tr key={s.id} className="hover:bg-slate-50/50 transition-colors">
@@ -384,6 +421,29 @@ export default function DashboardPage() {
                       </tfoot>
                     )}
                   </table>
+                  
+                  {/* Pagination for Solicitudes */}
+                  {totalPagesSolicitudes > 1 && (
+                    <div className="flex justify-center items-center gap-2 p-4 border-t border-slate-100">
+                      <button
+                        onClick={() => setPageSolicitudes((p) => Math.max(1, p - 1))}
+                        disabled={pageSolicitudes === 1}
+                        className="px-3 py-1.5 text-sm border rounded-lg disabled:opacity-40 hover:bg-slate-50 transition-colors"
+                      >
+                        ← Anterior
+                      </button>
+                      <span className="text-sm text-slate-600">
+                        Página {pageSolicitudes} de {totalPagesSolicitudes}
+                      </span>
+                      <button
+                        onClick={() => setPageSolicitudes((p) => Math.min(totalPagesSolicitudes, p + 1))}
+                        disabled={pageSolicitudes === totalPagesSolicitudes}
+                        className="px-3 py-1.5 text-sm border rounded-lg disabled:opacity-40 hover:bg-slate-50 transition-colors"
+                      >
+                        Siguiente →
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -395,6 +455,7 @@ export default function DashboardPage() {
                       <tr>
                         <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Solicitud</th>
                         <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Cliente</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Vendedor</th>
                         <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Cuota Nro</th>
                         <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Importe</th>
                       </tr>
@@ -403,14 +464,15 @@ export default function DashboardPage() {
                       {data.cuotasHoy.length === 0 ? (
                         <tr>
                           <td colSpan={4} className="px-6 py-10 text-center text-slate-400 text-sm">
-                            No se registraron cobros hoy
+                            No se registraron cobros
                           </td>
                         </tr>
                       ) : (
-                        data.cuotasHoy.map((c) => (
+                        paginatedCobros.map((c) => (
                           <tr key={c.id} className="hover:bg-slate-50/50 transition-colors">
                             <td className="px-4 py-3 text-sm font-medium text-slate-900">#{c.nroSolicitud}</td>
                             <td className="px-4 py-3 text-sm text-slate-700">{c.clienteNombre}</td>
+                            <td className="px-4 py-3 text-sm text-slate-600">{c.vendedorNombre || "—"}</td>
                             <td className="px-4 py-3 text-sm text-center text-slate-600">{c.nrocuota}</td>
                             <td className="px-4 py-3 text-sm text-right font-semibold text-emerald-700">{fmt(c.importe)}</td>
                           </tr>
@@ -420,7 +482,7 @@ export default function DashboardPage() {
                     {data.cuotasHoy.length > 0 && (
                       <tfoot className="bg-slate-50/80 border-t border-slate-200">
                         <tr>
-                          <td colSpan={3} className="px-4 py-2 text-xs font-semibold text-slate-500 uppercase">Total cobrado hoy</td>
+                          <td colSpan={4} className="px-4 py-2 text-xs font-semibold text-slate-500 uppercase">Total cobrado hoy</td>
                           <td className="px-4 py-2 text-right text-sm font-bold text-emerald-700">
                             {fmt(data.montoCobradasHoy)}
                           </td>
@@ -428,6 +490,29 @@ export default function DashboardPage() {
                       </tfoot>
                     )}
                   </table>
+
+                  {/* Pagination for Cobros */}
+                  {totalPagesCobros > 1 && (
+                    <div className="flex justify-center items-center gap-2 p-4 border-t border-slate-100">
+                      <button
+                        onClick={() => setPageCobros((p) => Math.max(1, p - 1))}
+                        disabled={pageCobros === 1}
+                        className="px-3 py-1.5 text-sm border rounded-lg disabled:opacity-40 hover:bg-slate-50 transition-colors"
+                      >
+                        ← Anterior
+                      </button>
+                      <span className="text-sm text-slate-600">
+                        Página {pageCobros} de {totalPagesCobros}
+                      </span>
+                      <button
+                        onClick={() => setPageCobros((p) => Math.min(totalPagesCobros, p + 1))}
+                        disabled={pageCobros === totalPagesCobros}
+                        className="px-3 py-1.5 text-sm border rounded-lg disabled:opacity-40 hover:bg-slate-50 transition-colors"
+                      >
+                        Siguiente →
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

@@ -99,6 +99,12 @@ export default function Header() {
                     </li>
 
                     <li className="border-b border-gray-200/80">
+                      <NavLink to="/mis-registros" className={navItemClass} onClick={() => setMobileMenuOpen(false)}>
+                        MIS REGISTROS
+                      </NavLink>
+                    </li>
+
+                    <li className="border-b border-gray-200/80">
                       <NavLink to="/monitor" className={navItemClass} onClick={() => setMobileMenuOpen(false)}>
                         MONITOR DE SOLICITUD
                       </NavLink>
@@ -133,6 +139,11 @@ export default function Header() {
                     <li className="border-b border-gray-200/80">
                       <NavLink to="/mis-ventas" className={navItemClass} onClick={() => setMobileMenuOpen(false)}>
                         MIS VENTAS
+                      </NavLink>
+                    </li>
+                    <li className="border-b border-gray-200/80">
+                      <NavLink to="/mis-registros" className={navItemClass} onClick={() => setMobileMenuOpen(false)}>
+                        MIS REGISTROS
                       </NavLink>
                     </li>
                   </>
@@ -209,6 +220,12 @@ export default function Header() {
                 </li>
 
                 <li className="border-b border-gray-200/80">
+                  <NavLink to="/mis-registros" className={navItemClass}>
+                    MIS REGISTROS
+                  </NavLink>
+                </li>
+
+                <li className="border-b border-gray-200/80">
                   <NavLink to="/clientes" className={navItemClass}>
                     CLIENTES
                   </NavLink>
@@ -248,6 +265,11 @@ export default function Header() {
                 <li className="border-b border-gray-200/80">
                   <NavLink to="/mis-ventas" className={navItemClass}>
                     MIS VENTAS
+                  </NavLink>
+                </li>
+                <li className="border-b border-gray-200/80">
+                  <NavLink to="/mis-registros" className={navItemClass}>
+                    MIS REGISTROS
                   </NavLink>
                 </li>
               </>
