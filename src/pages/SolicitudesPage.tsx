@@ -154,6 +154,9 @@ export default function SolicitudesPage() {
     const handleViewCuota = async (id: number) => {
         try {
             setViewLoading(true);
+            setViewError(null);
+            setViewSolicitud(null);
+            setViewComprobantes([]);
             const data = await cuotasApi.getById(id);
             setViewCuota(data);
 
