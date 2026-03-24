@@ -32,6 +32,11 @@ function App() {
   useEffect(() => {
     // Only hydrate once on mount, not on every usuario change
     if (hasHydrated) return;
+    const isPublicFirmaRoute = /^\/firma(\/|$)/.test(window.location.pathname);
+    if (isPublicFirmaRoute) {
+      setHasHydrated(true);
+      return;
+    }
 
     const hydrateUser = async () => {
       try {

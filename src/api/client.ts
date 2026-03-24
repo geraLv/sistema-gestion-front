@@ -39,7 +39,8 @@ apiClient.interceptors.response.use(
       } catch (refreshError) {
         refreshPromise = null;
         useAuthStore.getState().logout();
-        if (window.location.pathname !== "/login") {
+        const isPublicFirmaRoute = /^\/firma(\/|$)/.test(window.location.pathname);
+        if (window.location.pathname !== "/login" && !isPublicFirmaRoute) {
           window.location.href = "/login";
         }
         return Promise.reject(refreshError);
