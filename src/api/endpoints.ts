@@ -105,11 +105,11 @@ export const localidadesApi = {
     return response.data.data || null;
   },
 
-  search: async (q: string) => {
+  search: async (q: string, limit: number = 100) => {
     const response = await apiClient.get<ApiResponse<Localidad[]>>(
       "/localidades/search",
       {
-        params: { q },
+        params: { q, limit },
       },
     );
     return response.data.data || [];

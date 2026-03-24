@@ -9,7 +9,7 @@ interface Option {
 interface SearchableSelectProps {
     options?: Option[];
     value: string | number;
-    onChange: (value: string | number) => void;
+    onChange: (value: string | number, option?: Option) => void;
     placeholder?: string;
     label?: string;
     disabled?: boolean;
@@ -87,7 +87,7 @@ export function SearchableSelect({
         : options.filter((opt) => opt.label.toLowerCase().includes(searchTerm.toLowerCase()));
 
     const handleSelect = (val: string | number, lbl: string) => {
-        onChange(val);
+        onChange(val, { value: val, label: lbl });
         setSelectedLabel(lbl);
         setIsOpen(false);
         setSearchTerm("");

@@ -21,7 +21,10 @@ export function ClienteForm({ id, onSuccess, onCancel }: ClienteFormProps) {
         estado: "1",
     });
     const [formError, setFormError] = useState("");
-    const [localidades, setLocalidades] = useState<any[]>([]);
+    const [selectedLocalidadOption, setSelectedLocalidadOption] = useState<{
+        value: number;
+        label: string;
+    } | null>(null);
 
     const createMutation = useCreateCliente();
     const updateMutation = useUpdateCliente();
@@ -30,30 +33,46 @@ export function ClienteForm({ id, onSuccess, onCancel }: ClienteFormProps) {
     const { data: clienteData, isLoading: isLoadingCliente } = useCliente(id || 0);
 
     useEffect(() => {
-        loadLocalidades();
-    }, []);
-
-    useEffect(() => {
         if (clienteData && id) {
+            const localidadId = Number(
+                clienteData.relalocalidad || clienteData.localidadId || 0,
+            );
             setFormData({
                 nombre: clienteData.appynom || clienteData.nombre || "",
                 nroDocumento: clienteData.dni || clienteData.nroDocumento || "",
                 direccion: clienteData.direccion || "",
                 telefono: clienteData.telefono || "",
                 email: clienteData.email || "",
-                localidadId: String(clienteData.relalocalidad || clienteData.localidadId || ""),
+                localidadId: String(localidadId || ""),
                 fecha_nacimiento: clienteData.fecha_nacimiento ? clienteData.fecha_nacimiento.split('T')[0] : "",
                 estado: String(clienteData.condicion || clienteData.estado || 1),
             });
+
+            if (localidadId > 0) {
+                localidadesApi
+                    .getById(localidadId)
+                    .then((loc: any) => {
+                        if (loc) {
+                            setSelectedLocalidadOption({
+                                value: loc.idlocalidad,
+                                label: loc.nombre || "Sin nombre",
+                            });
+                        }
+                    })
+                    .catch(() => {});
+            }
         }
     }, [clienteData, id]);
 
-    const loadLocalidades = async () => {
+    const handleLocalidadSearch = async (term: string) => {
         try {
-            const data = (await localidadesApi.getAll()) as any;
-            setLocalidades(data || []);
-        } catch (err) {
-            console.error("Error cargando localidades:", err);
+            const results = (await localidadesApi.search(term, 100)) as any[];
+            return results.map((loc: any) => ({
+                value: Number(loc.idlocalidad),
+                label: loc.nombre || "Sin nombre",
+            }));
+        } catch {
+            return [];
         }
     };
 
@@ -141,15 +160,14 @@ export function ClienteForm({ id, onSuccess, onCancel }: ClienteFormProps) {
             <div>
                 <SearchableSelect
                     label="Localidad *"
-                    options={localidades.map((loc: any) => ({
-                        value: String(loc.idlocalidad),
-                        label: loc.nombre || "Sin nombre",
-                    }))}
+                    options={selectedLocalidadOption ? [selectedLocalidadOption] : []}
                     value={formData.localidadId}
                     onChange={(val) =>
                         setFormData({ ...formData, localidadId: String(val) })
                     }
                     placeholder="Seleccionar localidad"
+                    onSearch={handleLocalidadSearch}
+                    minSearchLength={2}
                 />
             </div>
             <div>

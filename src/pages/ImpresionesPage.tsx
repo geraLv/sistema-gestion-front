@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Layout from "../components/Layout";
 import { ErrorState, LoadingState } from "../components/Status";
 import { localidadesApi, reportesApi } from "../api/endpoints";
@@ -7,8 +7,8 @@ import { ReciboSignModal } from "../components/solicitudes/ReciboSignModal";
 import "./ImpresionesPage.css";
 
 interface LocalidadOption {
-  idlocalidad: number;
-  nombre: string;
+  value: number;
+  label: string;
 }
 
 type FirmaData = { firmaProductor: string; aclaracionProductor: string };
@@ -24,9 +24,10 @@ function toMonthInput(value: string) {
 }
 
 export default function ImpresionesPage() {
-  const [localidades, setLocalidades] = useState<LocalidadOption[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedLocalidadOption, setSelectedLocalidadOption] =
+    useState<LocalidadOption | null>(null);
 
   const [nroSolicitud, setNroSolicitud] = useState("");
   const [mesRecibos, setMesRecibos] = useState("");
@@ -43,22 +44,15 @@ export default function ImpresionesPage() {
   const [signModalOpen, setSignModalOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<(() => Promise<void>) | null>(null);
 
-  useEffect(() => {
-    loadLocalidades();
-  }, []);
-
-  const loadLocalidades = async () => {
+  const handleLocalidadSearch = async (term: string) => {
     try {
-      const data = await localidadesApi.getAll();
-      const list = Array.isArray(data) ? data : (data as any)?.data || [];
-      const mapped = list.map((l: any) => ({
-        idlocalidad: l.idlocalidad,
-        nombre: l.nombre || l.localidad || "Sin nombre",
+      const data = await localidadesApi.search(term, 100);
+      return (Array.isArray(data) ? data : []).map((l: any) => ({
+        value: Number(l.idlocalidad),
+        label: l.nombre || "Sin nombre",
       }));
-      setLocalidades(mapped);
-    } catch (err) {
-      console.error(err);
-      setError("No se pudieron cargar las localidades.");
+    } catch {
+      return [];
     }
   };
 
@@ -296,13 +290,20 @@ export default function ImpresionesPage() {
             <div className="legacy-field">
               <SearchableSelect
                 label="Localidad (opcional)"
-                options={localidades.map((l) => ({
-                  value: String(l.idlocalidad),
-                  label: l.nombre,
-                }))}
+                options={selectedLocalidadOption ? [selectedLocalidadOption] : []}
                 value={localidadId}
-                onChange={(val) => setLocalidadId(String(val))}
+                onChange={(val, option) => {
+                  setLocalidadId(String(val));
+                  if (option) {
+                    setSelectedLocalidadOption({
+                      value: Number(option.value),
+                      label: option.label,
+                    });
+                  }
+                }}
                 placeholder="Seleccione una localidad"
+                onSearch={handleLocalidadSearch}
+                minSearchLength={2}
               />
             </div>
             <div className="legacy-field">
@@ -344,13 +345,20 @@ export default function ImpresionesPage() {
             <div className="legacy-field">
               <SearchableSelect
                 label="Localidad"
-                options={localidades.map((l) => ({
-                  value: String(l.idlocalidad),
-                  label: l.nombre,
-                }))}
+                options={selectedLocalidadOption ? [selectedLocalidadOption] : []}
                 value={localidadId}
-                onChange={(val) => setLocalidadId(String(val))}
+                onChange={(val, option) => {
+                  setLocalidadId(String(val));
+                  if (option) {
+                    setSelectedLocalidadOption({
+                      value: Number(option.value),
+                      label: option.label,
+                    });
+                  }
+                }}
                 placeholder="Seleccione una localidad"
+                onSearch={handleLocalidadSearch}
+                minSearchLength={2}
               />
             </div>
             <div className="legacy-field">
