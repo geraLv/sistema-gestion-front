@@ -7,11 +7,11 @@ interface CuotaPayModalProps {
     cuota: any;
     comprobantesPrevios?: any[];
     onClose: () => void;
-    onConfirm: (id: number, file: File | null, formapago: string) => Promise<void>;
+    onConfirm: (id: number, files: File[], formapago: string) => Promise<void>;
 }
 
 export function CuotaPayModal({ cuota, comprobantesPrevios = [], onClose, onConfirm }: CuotaPayModalProps) {
-    const [file, setFile] = useState<File | null>(null);
+    const [files, setFiles] = useState<File[]>([]);
     const [formaPago, setFormaPago] = useState<string>("Efectivo");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -22,13 +22,13 @@ export function CuotaPayModal({ cuota, comprobantesPrevios = [], onClose, onConf
 
     const handleConfirm = async () => {
         setError(null);
-        if (formaPago === "Transferencia" && !file) {
-            setError("Debe adjuntar un comprobante de pago (PDF) para continuar con transferencia.");
+        if (formaPago === "Transferencia" && files.length === 0) {
+            setError("Debe adjuntar al menos un comprobante de pago (PDF) para continuar con transferencia.");
             return;
         }
         setLoading(true);
         try {
-            await onConfirm(cuota.idcuota || cuota.id, file, formaPago);
+            await onConfirm(cuota.idcuota || cuota.id, files, formaPago);
             onClose();
         } catch (err: any) {
             console.error("Payment error:", err);
@@ -104,46 +104,78 @@ export function CuotaPayModal({ cuota, comprobantesPrevios = [], onClose, onConf
                 {/* Upload Area */}
                 <div className="space-y-2">
                     <label className="text-sm font-semibold text-slate-800">
-                        Comprobante (PDF) {formaPago === "Transferencia" && <span className="text-red-500">*</span>}
+                        Comprobante(s) (PDF) {formaPago === "Transferencia" && <span className="text-red-500">*</span>}
                     </label>
                     <div className="relative group">
                         <input
                             type="file"
                             accept="application/pdf"
+                            multiple
                             className="hidden"
                             id="file-upload"
-                            onChange={(e) => setFile(e.target.files?.[0] || null)}
+                            onChange={(e) => {
+                                const selected = Array.from(e.target.files || []);
+                                setFiles((prev) => {
+                                    const merged = [...prev];
+                                    for (const next of selected) {
+                                        const exists = merged.some(
+                                            (f) =>
+                                                f.name === next.name &&
+                                                f.size === next.size &&
+                                                f.lastModified === next.lastModified,
+                                        );
+                                        if (!exists) merged.push(next);
+                                    }
+                                    return merged;
+                                });
+                                e.currentTarget.value = "";
+                            }}
                         />
 
-                        {!file ? (
+                        {files.length === 0 ? (
                             <label
                                 htmlFor="file-upload"
                                 className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-300 rounded-xl cursor-pointer hover:bg-slate-50 hover:border-slate-400 transition-colors"
                             >
                                 <Upload className="w-8 h-8 text-slate-400 mb-2 group-hover:text-slate-600" />
-                                <span className="text-sm text-slate-600 font-medium">Click para subir comprobante</span>
-                                <span className="text-xs text-slate-400 mt-1">Formato PDF permitido</span>
+                                <span className="text-sm text-slate-600 font-medium">Click para subir comprobantes</span>
+                                <span className="text-xs text-slate-400 mt-1">Múltiples archivos PDF permitidos</span>
                             </label>
                         ) : (
-                            <div className="flex items-center justify-between p-3 border border-slate-200 rounded-xl bg-slate-50">
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-red-100 text-red-600 rounded-lg">
-                                        <FileText className="w-5 h-5" />
+                            <div className="space-y-2">
+                                {files.map((selectedFile, idx) => (
+                                    <div key={`${selectedFile.name}-${selectedFile.size}-${idx}`} className="flex items-center justify-between p-3 border border-slate-200 rounded-xl bg-slate-50">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-red-100 text-red-600 rounded-lg">
+                                                <FileText className="w-5 h-5" />
+                                            </div>
+                                            <div>
+                                                <div className="text-sm font-medium text-slate-900 truncate max-w-[200px]">{selectedFile.name}</div>
+                                                <div className="text-xs text-slate-500">{(selectedFile.size / 1024).toFixed(1)} KB</div>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => setFiles((prev) => prev.filter((_, i) => i !== idx))}
+                                            className="p-2 text-slate-400 hover:text-red-600 transition-colors"
+                                        >
+                                            <Trash className="w-4 h-4" />
+                                        </button>
                                     </div>
-                                    <div>
-                                        <div className="text-sm font-medium text-slate-900 truncate max-w-[200px]">{file.name}</div>
-                                        <div className="text-xs text-slate-500">{(file.size / 1024).toFixed(1)} KB</div>
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={() => setFile(null)}
-                                    className="p-2 text-slate-400 hover:text-red-600 transition-colors"
+                                ))}
+                                <label
+                                    htmlFor="file-upload"
+                                    className="inline-flex cursor-pointer items-center rounded-lg border border-slate-300 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 transition-colors"
                                 >
-                                    <Trash className="w-4 h-4" />
-                                </button>
+                                    Agregar más PDFs
+                                </label>
                             </div>
                         )}
                     </div>
+                    {files.length > 0 && (
+                        <p className="text-xs text-slate-600">
+                            Se subirán {files.length} comprobante{files.length > 1 ? "s" : ""}.
+                        </p>
+                    )}
                 </div>
 
                 {/* Previous Comprobantes */}
@@ -177,9 +209,11 @@ export function CuotaPayModal({ cuota, comprobantesPrevios = [], onClose, onConf
                 <button
                     className="action-button min-w-[140px]"
                     onClick={handleConfirm}
-                    disabled={loading || (formaPago === "Transferencia" && !file)}
+                    disabled={loading || (formaPago === "Transferencia" && files.length === 0)}
                 >
-                    {loading ? "Procesando..." : "Confirmar Pago"}
+                    {loading
+                        ? "Procesando..."
+                        : `Confirmar Pago${files.length > 0 ? ` (${files.length})` : ""}`}
                 </button>
             </div>
         </Modal>

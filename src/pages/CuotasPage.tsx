@@ -98,11 +98,13 @@ export default function CuotasPage() {
     }
   };
 
-  const handleConfirmPayCuota = async (id: number, file: File | null, formapago: string) => {
+  const handleConfirmPayCuota = async (id: number, files: File[], formapago: string) => {
     try {
       await cuotasApi.pagar(id, formapago);
-      if (file) {
-        await cuotasApi.uploadComprobante(id, file); // Fixed method name assumption which was subirComprobante
+      if (files.length > 0) {
+        for (const file of files) {
+          await cuotasApi.uploadComprobante(id, file);
+        }
       }
       queryClient.invalidateQueries({ queryKey: ["cuotas"] });
     } catch (e) {

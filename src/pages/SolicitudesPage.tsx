@@ -213,12 +213,12 @@ export default function SolicitudesPage() {
         if (viewData) handleViewPlan(viewData.idsolicitud || viewData.id);
     };
 
-    const handleConfirmPayCuota = async (id: number, file: File | null, formapago: string) => {
+    const handleConfirmPayCuota = async (id: number, files: File[], formapago: string) => {
         await cuotasApi.pagar(id, formapago);
-        if (file) {
-            const formData = new FormData();
-            formData.append("archivo", file);
-            await cuotasApi.uploadComprobante(id, file);
+        if (files.length > 0) {
+            for (const file of files) {
+                await cuotasApi.uploadComprobante(id, file);
+            }
         }
         setPayCuota(null);
         queryClient.invalidateQueries({ queryKey: ["cuotas"] });
