@@ -111,6 +111,11 @@ export function ContratoPreviewModal({
 
     useEffect(() => {
         if (solicitudData) {
+            const nroSolicitud = (
+                solicitudData.nrosolicitud ??
+                solicitudData.nroSolicitud ??
+                ""
+            ).toString();
             setFormData({
                 clienteNombre: solicitudData.cliente?.appynom || solicitudData.appynom || "",
                 clienteDni: solicitudData.cliente?.dni || solicitudData.dni || "",
@@ -121,7 +126,7 @@ export function ContratoPreviewModal({
 
                 vehNuevo: "",
                 vehUsado: "",
-                nroOp: solicitudData.nrosolicitud?.toString() || "",
+                nroOp: nroSolicitud,
                 fechaDia: new Date().getDate().toString().padStart(2, '0'),
                 fechaMes: (new Date().getMonth() + 1).toString().padStart(2, '0'),
                 fechaAnio: new Date().getFullYear().toString().slice(2),
@@ -151,7 +156,7 @@ export function ContratoPreviewModal({
                     const c = solicitudData.cantidadcuotas || 1;
                     return c > 0 ? numberToSpanishWords(m / c) : "";
                 })(),
-                pagoPedidoNro: solicitudData.nrosolicitud?.toString() || "",
+                pagoPedidoNro: nroSolicitud,
                 sonPesos: (() => {
                     const m = solicitudData.monto || 0;
                     const c = solicitudData.cantidadcuotas || 1;
