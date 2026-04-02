@@ -119,6 +119,12 @@ export function SearchableSelect({
                             onChange={(e) => handleSearchChange(e.target.value)}
                             autoFocus
                             onClick={(e) => e.stopPropagation()}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                }
+                            }}
                         />
                     </div>
 
