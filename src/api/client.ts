@@ -39,10 +39,8 @@ apiClient.interceptors.response.use(
       } catch (refreshError) {
         refreshPromise = null;
         useAuthStore.getState().logout();
-        const isPublicFirmaRoute = /^\/firma(\/|$)/.test(window.location.pathname);
-        if (window.location.pathname !== "/login" && !isPublicFirmaRoute) {
-          window.location.href = "/login";
-        }
+        // Avoid hard reloads that can end in blank pages on some deployments.
+        // ProtectedRoute will redirect to /login after logout via client-side routing.
         return Promise.reject(refreshError);
       }
     }
