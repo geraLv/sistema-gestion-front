@@ -272,6 +272,11 @@ export default function Header() {
                     MIS REGISTROS
                   </NavLink>
                 </li>
+                <li className="border-b border-gray-200/80">
+                  <NavLink to="/clientes" className={navItemClass}>
+                    CLIENTES
+                  </NavLink>
+                </li>
               </>
             )}
 
